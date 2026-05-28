@@ -5,12 +5,20 @@ allprojects {
     }
 }
 
-val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
-rootProject.layout.buildDirectory.value(newBuildDir)
+val rootBuildDir = rootProject.layout.projectDirectory.dir("../build")
+rootProject.layout.buildDirectory.value(rootBuildDir)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    val projectDir = project.projectDir.absolutePath
+    val rootDir = rootProject.projectDir.absolutePath
+    val isSameDrive = if (projectDir.contains(":") && rootDir.contains(":")) {
+        projectDir.substringBefore(":").equals(rootDir.substringBefore(":"), ignoreCase = true)
+    } else {
+        true
+    }
+    if (isSameDrive) {
+        project.layout.buildDirectory.value(rootBuildDir.dir(project.name))
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")
