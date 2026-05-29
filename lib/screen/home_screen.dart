@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui' as ui;
+import '../utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -2690,22 +2691,6 @@ class DonutChartPainter extends CustomPainter {
 
   DonutChartPainter(this.categories, {this.touchedCategoryId});
 
-  final Map<String, Color> categoryColors = {
-    'rent': const Color(0xFF2563EB),
-    'petrol': const Color(0xFFF97316),
-    'bakery': const Color(0xFFD97706),
-    'food': const Color(0xFFEF4444),
-    'grocery': const Color(0xFF22C55E),
-    'shopping': const Color(0xFFA855F7),
-    'egg': const Color(0xFFEAB308),
-    'travel': const Color(0xFF14B8A6),
-    'allowance': const Color(0xFF10B981),
-    'entertainment': const Color(0xFFEC4899),
-    'lent': const Color(0xFF6B7280),
-    'misc': const Color(0xFF94A3B8),
-    'others': const Color(0xFF06B6D4),
-  };
-
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -2721,7 +2706,7 @@ class DonutChartPainter extends CustomPainter {
       final isTouched = catId == touchedCategoryId;
 
       final paint = Paint()
-        ..color = categoryColors[catId] ?? Colors.white
+        ..color = AppConstants.categoryColors[catId] ?? Colors.white
         ..style = PaintingStyle.stroke
         ..strokeWidth = isTouched ? 32 : 24;
 

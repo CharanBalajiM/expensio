@@ -5,95 +5,411 @@ import 'package:intl/intl.dart';
 import '../blocs/expense/expense_bloc.dart';
 import '../models/expense_model.dart';
 import '../services/database_service.dart';
+import '../utils/constants.dart';
+import 'home_screen.dart'; // To reuse ExpenseChartPainter
 
-class AnalyticsScreen extends StatelessWidget {
+enum AnalyticsFilter { oneDay, sevenDays, oneMonth, custom }
+
+class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Analytics')),
-      body: BlocBuilder<ExpenseBloc, ExpenseState>(
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
+}
 
-          final expenses = state.expenses;
-          if (expenses.isEmpty) {
-            return const Center(
-              child: Text(
-                'No transactions to analyze.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            );
-          }
+class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  AnalyticsFilter _selectedFilter = AnalyticsFilter.sevenDays;
+  DateTime? _customStartDate;
+  DateTime? _customEndDate;
+  int? _activeIndex;
 
-          // Calculate weekly breakdown of expenses (last 7 days)
-          final Map<int, double> last7Days = {};
-          final now = DateTime.now();
-          for (int i = 0; i < 7; i++) {
-            final day = now.subtract(Duration(days: i));
-            final total = expenses
-                .where(
-                  (e) =>
-                      e.date.day == day.day &&
-                      e.date.month == day.month &&
-                      e.date.year == day.year,
-                )
-                .fold(0.0, (sum, e) => sum + e.amount);
-            last7Days[i] = total;
-          }
+  List<Expense> _getFilteredExpenses(List<Expense> allExpenses) {
+    final now = DateTime.now();
+    DateTime startDate;
+    DateTime endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-          final chartData = List.generate(
-            7,
-            (index) => last7Days[6 - index] ?? 0.0,
+    switch (_selectedFilter) {
+      case AnalyticsFilter.oneDay:
+        startDate = DateTime(now.year, now.month, now.day, 0, 0, 0);
+        break;
+      case AnalyticsFilter.sevenDays:
+        startDate = DateTime(now.year, now.month, now.day - 6, 0, 0, 0);
+        break;
+      case AnalyticsFilter.oneMonth:
+        startDate = DateTime(now.year, now.month - 29, now.day, 0, 0, 0);
+        if (_selectedFilter == AnalyticsFilter.oneMonth) {
+          startDate = now.subtract(const Duration(days: 29));
+          startDate = DateTime(
+            startDate.year,
+            startDate.month,
+            startDate.day,
+            0,
+            0,
+            0,
           );
+        }
+        break;
+      case AnalyticsFilter.custom:
+        startDate =
+            _customStartDate ?? DateTime(now.year, now.month, now.day, 0, 0, 0);
+        if (_customEndDate != null) {
+          endDate = DateTime(
+            _customEndDate!.year,
+            _customEndDate!.month,
+            _customEndDate!.day,
+            23,
+            59,
+            59,
+          );
+        }
+        break;
+    }
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 16),
-                const Text(
-                  'Spending Trend (Last 7 Days)',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
+    return allExpenses.where((e) {
+      if (e.isFromSavings) return false;
+      return e.date.isAfter(
+            startDate.subtract(const Duration(milliseconds: 1)),
+          ) &&
+          e.date.isBefore(endDate.add(const Duration(milliseconds: 1)));
+    }).toList();
+  }
 
-                // Trend line chart container
-                Container(
-                  height: 220,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF141416),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                  ),
-                  child: CustomPaint(
-                    painter: LineChartPainter(chartData),
-                    child: Container(),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                const Text(
-                  'Category Breakdown',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-
-                Expanded(
-                  child: ListView(children: _buildCategoryList(expenses)),
-                ),
-              ],
+  Future<void> _selectCustomDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _customStartDate != null && _customEndDate != null
+          ? DateTimeRange(start: _customStartDate!, end: _customEndDate!)
+          : null,
+      builder: (context, child) {
+        return Container(
+          // Fakes the dialog barrier
+          alignment: Alignment.center,
+          color: Colors.black.withValues(alpha: 0.5),
+          child: Material(
+            color: const Color(0xFF141416), // Dark background for the popup
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
             ),
-          );
-        },
+            clipBehavior: Clip.hardEdge,
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: 550, // Popup height
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  scaffoldBackgroundColor: Colors.transparent,
+                  appBarTheme: const AppBarTheme(
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                  ),
+                  colorScheme: const ColorScheme.dark(
+                    primary: Color(0xFF00E676),
+                    onPrimary: Colors.black,
+                    secondary: Color(
+                      0xFF00E676,
+                    ), // Overrides the default cyan/teal
+                    onSecondary: Colors.black,
+                    surface: Color(0xFF141416),
+                    onSurface: Colors.white,
+                    primaryContainer: Color(
+                      0xFF004D27,
+                    ), // Darker green container
+                    onPrimaryContainer: Color(0xFF00E676),
+                  ),
+                  datePickerTheme: DatePickerThemeData(
+                    rangeSelectionOverlayColor: WidgetStateProperty.all(
+                      const Color(0xFF00E676).withValues(alpha: 0.15),
+                    ),
+                    rangePickerHeaderBackgroundColor: const Color(0xFF141416),
+                  ),
+                ),
+                child: child!,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _customStartDate = picked.start;
+        _customEndDate = picked.end;
+        _selectedFilter = AnalyticsFilter.custom;
+        _activeIndex = null;
+      });
+    }
+  }
+
+  Widget _buildFilterChip(String label, AnalyticsFilter filter) {
+    final isSelected = _selectedFilter == filter;
+
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF00E676) : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isSelected
+              ? const Color(0xFF00E676)
+              : Colors.white.withValues(alpha: 0.1),
+        ),
       ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.black : Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+
+    if (filter == AnalyticsFilter.custom) {
+      return GestureDetector(onTap: _selectCustomDateRange, child: chip);
+    }
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = filter;
+          _activeIndex = null;
+        });
+      },
+      child: chip,
+    );
+  }
+
+  Widget _buildChart(List<Expense> filteredExpenses) {
+    List<double> values = [];
+    List<String> axisLabels = [];
+    List<String> scrubLabels = [];
+    final now = DateTime.now();
+
+    if (_selectedFilter == AnalyticsFilter.oneDay) {
+      final startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+      final todaysExpenses = filteredExpenses
+          .where(
+            (e) =>
+                e.date.isAfter(
+                  startOfDay.subtract(const Duration(milliseconds: 1)),
+                ) &&
+                e.date.isBefore(endOfDay.add(const Duration(milliseconds: 1))),
+          )
+          .toList();
+
+      todaysExpenses.sort((a, b) => a.date.compareTo(b.date));
+
+      if (todaysExpenses.isEmpty) {
+        values.add(0.0);
+        axisLabels.add('Today');
+        scrubLabels.add('No entries');
+      } else {
+        for (var e in todaysExpenses) {
+          values.add(e.amount);
+          final timeStr = DateFormat('h:mm a').format(e.date);
+          axisLabels.add(timeStr);
+          scrubLabels.add(timeStr);
+        }
+      }
+    } else if (_selectedFilter == AnalyticsFilter.sevenDays) {
+      for (int i = 6; i >= 0; i--) {
+        final day = now.subtract(Duration(days: i));
+        final start = DateTime(day.year, day.month, day.day, 0, 0, 0);
+        final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
+        final sum = filteredExpenses
+            .where(
+              (e) =>
+                  e.date.isAfter(
+                    start.subtract(const Duration(milliseconds: 1)),
+                  ) &&
+                  e.date.isBefore(end.add(const Duration(milliseconds: 1))),
+            )
+            .fold(0.0, (sum, e) => sum + e.amount);
+        values.add(sum);
+
+        final label = DateFormat('E').format(day);
+        axisLabels.add(label);
+        scrubLabels.add(label);
+      }
+    } else if (_selectedFilter == AnalyticsFilter.oneMonth) {
+      for (int i = 29; i >= 0; i--) {
+        final day = now.subtract(Duration(days: i));
+        final start = DateTime(day.year, day.month, day.day, 0, 0, 0);
+        final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
+        final sum = filteredExpenses
+            .where(
+              (e) =>
+                  e.date.isAfter(
+                    start.subtract(const Duration(milliseconds: 1)),
+                  ) &&
+                  e.date.isBefore(end.add(const Duration(milliseconds: 1))),
+            )
+            .fold(0.0, (sum, e) => sum + e.amount);
+        values.add(sum);
+
+        final label = DateFormat('d MMM').format(day);
+        axisLabels.add(i % 6 == 0 ? label : '');
+        scrubLabels.add(label);
+      }
+    } else if (_selectedFilter == AnalyticsFilter.custom) {
+      if (_customStartDate == null || _customEndDate == null) {
+        return const SizedBox();
+      }
+      final diff = _customEndDate!.difference(_customStartDate!).inDays;
+      if (diff == 0) {
+        final startOfDay = DateTime(
+          _customStartDate!.year,
+          _customStartDate!.month,
+          _customStartDate!.day,
+          0,
+          0,
+          0,
+        );
+        final endOfDay = DateTime(
+          _customStartDate!.year,
+          _customStartDate!.month,
+          _customStartDate!.day,
+          23,
+          59,
+          59,
+        );
+
+        final todaysExpenses = filteredExpenses
+            .where(
+              (e) =>
+                  e.date.isAfter(
+                    startOfDay.subtract(const Duration(milliseconds: 1)),
+                  ) &&
+                  e.date.isBefore(
+                    endOfDay.add(const Duration(milliseconds: 1)),
+                  ),
+            )
+            .toList();
+
+        todaysExpenses.sort((a, b) => a.date.compareTo(b.date));
+
+        if (todaysExpenses.isEmpty) {
+          values.add(0.0);
+          final dayStr = DateFormat('MMM d').format(_customStartDate!);
+          axisLabels.add(dayStr);
+          scrubLabels.add('No entries');
+        } else {
+          for (var e in todaysExpenses) {
+            values.add(e.amount);
+            final timeStr = DateFormat('h:mm a').format(e.date);
+            axisLabels.add(timeStr);
+            scrubLabels.add(timeStr);
+          }
+        }
+      } else {
+        for (int i = 0; i <= diff; i++) {
+          final day = _customStartDate!.add(Duration(days: i));
+          final start = DateTime(day.year, day.month, day.day, 0, 0, 0);
+          final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
+          final sum = filteredExpenses
+              .where(
+                (e) =>
+                    e.date.isAfter(
+                      start.subtract(const Duration(milliseconds: 1)),
+                    ) &&
+                    e.date.isBefore(end.add(const Duration(milliseconds: 1))),
+              )
+              .fold(0.0, (sum, e) => sum + e.amount);
+          values.add(sum);
+
+          final label = DateFormat('d MMM').format(day);
+          axisLabels.add((diff <= 7 || i % (diff ~/ 5) == 0) ? label : '');
+          scrubLabels.add(label);
+        }
+      }
+    }
+
+    if (values.isEmpty) return const SizedBox();
+    final double totalExpenses = values.fold(0.0, (sum, v) => sum + v);
+
+    String displayAmount = '';
+    String displayLabel = '';
+    if (_activeIndex != null &&
+        _activeIndex! >= 0 &&
+        _activeIndex! < values.length) {
+      displayAmount = '₹${values[_activeIndex!].toStringAsFixed(0)}';
+      displayLabel = scrubLabels[_activeIndex!];
+    } else {
+      displayAmount = '₹${totalExpenses.toStringAsFixed(0)}';
+      displayLabel = 'Total for Period';
+    }
+
+    return Column(
+      children: [
+        Text(
+          displayAmount,
+          style: const TextStyle(
+            color: Color(0xFF00E676),
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          displayLabel.isEmpty ? 'Data Point' : displayLabel,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 180,
+          width: double.infinity,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return GestureDetector(
+                onHorizontalDragDown: (details) {
+                  final maxIndex = values.length - 1;
+                  if (maxIndex <= 0) return;
+                  final spacing = constraints.maxWidth / maxIndex;
+                  final index = (details.localPosition.dx / spacing)
+                      .round()
+                      .clamp(0, maxIndex);
+                  setState(() => _activeIndex = index);
+                },
+                onHorizontalDragStart: (details) {
+                  final maxIndex = values.length - 1;
+                  if (maxIndex <= 0) return;
+                  final spacing = constraints.maxWidth / maxIndex;
+                  final index = (details.localPosition.dx / spacing)
+                      .round()
+                      .clamp(0, maxIndex);
+                  setState(() => _activeIndex = index);
+                },
+                onHorizontalDragUpdate: (details) {
+                  final maxIndex = values.length - 1;
+                  if (maxIndex <= 0) return;
+                  final spacing = constraints.maxWidth / maxIndex;
+                  final index = (details.localPosition.dx / spacing)
+                      .round()
+                      .clamp(0, maxIndex);
+                  setState(() => _activeIndex = index);
+                },
+                onHorizontalDragEnd: (details) =>
+                    setState(() => _activeIndex = null),
+                child: CustomPaint(
+                  painter: ExpenseChartPainter(
+                    values,
+                    axisLabels,
+                    _activeIndex,
+                    showLabels: true,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -119,6 +435,10 @@ class AnalyticsScreen extends StatelessWidget {
             )
           : Icons.receipt;
 
+      // Grab color from shared constants map
+      final Color catColor =
+          AppConstants.categoryColors[entry.key] ?? const Color(0xFF00E676);
+
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -128,9 +448,13 @@ class AnalyticsScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              backgroundColor: const Color(0xFF09090B),
-              child: Icon(iconData, color: Colors.white),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: catColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(iconData, color: catColor, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -147,9 +471,7 @@ class AnalyticsScreen extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: percentage / 100,
                       backgroundColor: Colors.white.withValues(alpha: 0.05),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF00E676),
-                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(catColor),
                       minHeight: 6,
                     ),
                   ),
@@ -175,97 +497,105 @@ class AnalyticsScreen extends StatelessWidget {
       );
     }).toList();
   }
-}
-
-class LineChartPainter extends CustomPainter {
-  final List<double> dataPoints;
-  LineChartPainter(this.dataPoints);
 
   @override
-  void paint(Canvas canvas, Size size) {
-    if (dataPoints.isEmpty) return;
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Analytics',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        child: BlocBuilder<ExpenseBloc, ExpenseState>(
+          builder: (context, state) {
+            if (state.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-    final maxVal = dataPoints.reduce(max);
-    final minVal = dataPoints.reduce(min);
-    final double range = maxVal - minVal == 0 ? 1 : maxVal - minVal;
+            final allExpenses = state.expenses;
+            if (allExpenses.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No transactions to analyze.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              );
+            }
 
-    final double widthInterval = size.width / (dataPoints.length - 1);
+            final filteredExpenses = _getFilteredExpenses(allExpenses);
 
-    final path = Path();
-    final fillPath = Path();
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Trend Chart Container
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF141416),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: _buildChart(filteredExpenses),
+                  ),
+                  const SizedBox(height: 24),
 
-    // Map points to coordinates
-    final points = <Offset>[];
-    for (int i = 0; i < dataPoints.length; i++) {
-      final double x = i * widthInterval;
-      final double y =
-          size.height -
-          ((dataPoints[i] - minVal) / range) * (size.height - 40) -
-          20;
-      points.add(Offset(x, y));
-    }
+                  // Filter Row
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('1D', AnalyticsFilter.oneDay),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('7D', AnalyticsFilter.sevenDays),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('1M', AnalyticsFilter.oneMonth),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          _selectedFilter == AnalyticsFilter.custom &&
+                                  _customStartDate != null &&
+                                  _customEndDate != null
+                              ? '${DateFormat('MMM d').format(_customStartDate!)} - ${DateFormat('MMM d').format(_customEndDate!)}'
+                              : 'Custom',
+                          AnalyticsFilter.custom,
+                        ),
+                      ],
+                    ),
+                  ),
 
-    path.moveTo(points[0].dx, points[0].dy);
-    fillPath.moveTo(points[0].dx, size.height);
-    fillPath.lineTo(points[0].dx, points[0].dy);
-
-    for (int i = 0; i < points.length - 1; i++) {
-      final p1 = points[i];
-      final p2 = points[i + 1];
-      final controlPoint1 = Offset(p1.dx + widthInterval / 2, p1.dy);
-      final controlPoint2 = Offset(p2.dx - widthInterval / 2, p2.dy);
-
-      path.cubicTo(
-        controlPoint1.dx,
-        controlPoint1.dy,
-        controlPoint2.dx,
-        controlPoint2.dy,
-        p2.dx,
-        p2.dy,
-      );
-      fillPath.cubicTo(
-        controlPoint1.dx,
-        controlPoint1.dy,
-        controlPoint2.dx,
-        controlPoint2.dy,
-        p2.dx,
-        p2.dy,
-      );
-    }
-
-    fillPath.lineTo(size.width, size.height);
-    fillPath.close();
-
-    // Paint Background Fill Gradient
-    final fillPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          const Color(0xFF00E676).withValues(alpha: 0.15),
-          const Color(0xFF00E676).withValues(alpha: 0.0),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawPath(fillPath, fillPaint);
-
-    // Paint Trend Line
-    final linePaint = Paint()
-      ..color = const Color(0xFF00E676)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(path, linePaint);
-
-    // Draw Glow points
-    final pointPaint = Paint()..color = const Color(0xFF00E676);
-    final shadowPaint = Paint()..color = Colors.white.withValues(alpha: 0.2);
-
-    for (final p in points) {
-      canvas.drawCircle(p, 6, shadowPaint);
-      canvas.drawCircle(p, 3, pointPaint);
-    }
+                  const SizedBox(height: 24),
+                  // Category List
+                  const Text(
+                    'Category Breakdown',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                  if (filteredExpenses.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40.0),
+                      child: Center(
+                        child: Text(
+                          'No expenses in this period.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  else
+                    ..._buildCategoryList(filteredExpenses),
+                  const SizedBox(height: 40), // Bottom padding
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
