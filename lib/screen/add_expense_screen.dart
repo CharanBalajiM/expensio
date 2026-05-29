@@ -23,6 +23,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Category? _selectedCategory;
   bool _isAddingCategory = false;
   DateTime _selectedDate = DateTime.now();
+  bool _isFromSavings = false;
 
   final Map<String, List<double>> _quickActions = {
     'rent': [7500],
@@ -60,6 +61,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter an amount and select a category.'),
+          backgroundColor: Color(0xFF00E676),
         ),
       );
       return;
@@ -68,7 +70,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount.')),
+        const SnackBar(
+          content: Text(
+            'Please enter a valid amount.',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
@@ -79,6 +87,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       date: _selectedDate,
       categoryId: _selectedCategory!.id,
       note: _noteController.text.isNotEmpty ? _noteController.text : null,
+      isFromSavings: _isFromSavings,
     );
 
     context.read<ExpenseBloc>().add(AddExpenseEvent(expense));
@@ -101,7 +110,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               surface: Color(0xFF141416),
               onSurface: Colors.white,
             ),
-            dialogBackgroundColor: const Color(0xFF141416),
+            dialogTheme: DialogThemeData(
+              backgroundColor: const Color(0xFF141416),
+            ),
           ),
           child: child!,
         );
@@ -223,12 +234,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF00E676).withOpacity(0.15)
+                        ? const Color(0xFF00E676).withValues(alpha: 0.15)
                         : const Color(0xFF141416),
                     border: Border.all(
                       color: isSelected
                           ? const Color(0xFF00E676)
-                          : Colors.white.withOpacity(0.05),
+                          : Colors.white.withValues(alpha: 0.05),
                     ),
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -241,9 +252,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           fontFamily: 'MaterialIcons',
                         ),
                         size: 16,
-                        color: isSelected
-                            ? const Color(0xFF00E676)
-                            : Colors.white,
+                        color:
+                            DatabaseService.categoryColors[cat.id] ??
+                            Colors.white,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -346,15 +357,29 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Widget _buildAmountSection(SavingsState savingsState) {
     final typedAmount = double.tryParse(_amountController.text) ?? 0.0;
 
-    // Calculate total expenses so far
-    final totalExpenses = DatabaseService.expenseBox.values.fold(
-      0.0,
-      (sum, e) => sum + e.amount,
-    );
-    final availableBalance = savingsState.initialBalance - totalExpenses;
-    final remainingBalance = availableBalance - typedAmount;
+    // Calculate total expenses so far (only normal expenses)
+    final totalExpenses = DatabaseService.expenseBox.values
+        .where((e) => !e.isFromSavings)
+        .fold(0.0, (sum, e) => sum + e.amount);
+    final normalAvailable = savingsState.initialBalance - totalExpenses;
 
-    print('Iconsss ${Icons.egg_alt_outlined.codePoint}');
+    // Calculate total savings so far
+    final savingsExpenses = DatabaseService.expenseBox.values
+        .where((e) => e.isFromSavings)
+        .fold(0.0, (sum, e) => sum + e.amount);
+    final historicalSavingsMap = Map<String, double>.from(
+      DatabaseService.savingsBox.get('historicalSavings') ?? {},
+    );
+    final rawTotalSavings = historicalSavingsMap.values.fold(
+      0.0,
+      (sum, val) => sum + val,
+    );
+    final savingsAvailable = rawTotalSavings - savingsExpenses;
+
+    final availableBalance = _isFromSavings
+        ? savingsAvailable
+        : normalAvailable;
+    final remainingBalance = availableBalance - typedAmount;
 
     // Determine Quick Actions
     List<double> currentQA = [];
@@ -454,7 +479,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             children: currentQA.map((amt) {
               return ActionChip(
                 backgroundColor: const Color(0xFF141416),
-                side: BorderSide(color: Colors.white.withOpacity(0.05)),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                 label: Text(
                   '+₹${amt.toStringAsFixed(0)}',
                   style: const TextStyle(color: Colors.white),
@@ -465,6 +490,81 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               );
             }).toList(),
           ),
+        const SizedBox(height: 24),
+
+        // Deduct From Selection
+        const Text(
+          'Deduct From',
+          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _isFromSavings = false),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: !_isFromSavings
+                        ? const Color(0xFF00E676).withValues(alpha: 0.15)
+                        : const Color(0xFF141416),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: !_isFromSavings
+                          ? const Color(0xFF00E676)
+                          : Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Normal Balance',
+                    style: TextStyle(
+                      color: !_isFromSavings
+                          ? const Color(0xFF00E676)
+                          : Colors.white,
+                      fontWeight: !_isFromSavings
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _isFromSavings = true),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _isFromSavings
+                        ? const Color(0xFF00E676).withValues(alpha: 0.15)
+                        : const Color(0xFF141416),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isFromSavings
+                          ? const Color(0xFF00E676)
+                          : Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Savings Balance',
+                    style: TextStyle(
+                      color: _isFromSavings
+                          ? const Color(0xFF00E676)
+                          : Colors.white,
+                      fontWeight: _isFromSavings
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

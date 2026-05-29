@@ -222,7 +222,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: const Color(0xFF09090B),
-                                  child: Icon(iconData, color: Colors.white),
+                                  child: Icon(
+                                    iconData,
+                                    color: DatabaseService.categoryColors[expense.categoryId] ?? Colors.white,
+                                  ),
                                 ),
                                 title: Text(
                                   category?.name ?? 'Unknown',
@@ -233,17 +236,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 subtitle: expense.note != null
                                     ? Text(
                                         expense.note!,
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.5),
+                                        style: const TextStyle(
+                                          color: Colors.white,
                                           fontSize: 11,
                                         ),
                                       )
                                     : null,
-                                trailing: Text(
-                                  '-${NumberFormat.currency(symbol: '₹').format(expense.amount)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (expense.isFromSavings) ...[
+                                      const Icon(
+                                        Icons.savings_outlined,
+                                        color: Color(0xFF00E676),
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    Text(
+                                      '-${NumberFormat.currency(symbol: '₹').format(expense.amount)}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

@@ -18,3 +18,9 @@ class UpdateInitialBalance extends SavingsEvent {
   final double amount;
   UpdateInitialBalance(this.amount);
 }
+
+class ArchiveCycle extends SavingsEvent {
+  final double currentBalance;
+  final String monthKey;
+  ArchiveCycle(this.currentBalance, this.monthKey);
+}

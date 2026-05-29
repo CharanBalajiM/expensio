@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _savedController = TextEditingController();
   final _goalController = TextEditingController();
   final _initialBalanceController = TextEditingController();
+  bool _isShowingSalaryPopup = false;
   String? _touchedChartCategoryId;
 
   @override
@@ -36,93 +37,248 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showInitialBalanceDialog(
     BuildContext context,
     double currentInitialBalance,
+    double currentBalance,
   ) {
-    _initialBalanceController.text = currentInitialBalance.toStringAsFixed(0);
+    _initialBalanceController.text = '';
 
     showDialog(
       context: context,
       builder: (context) {
         bool isAdding = true;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1E1E22),
-              title: const Text('Set Total Balance'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _initialBalanceController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(labelText: 'Amount'),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            isAdding = !isAdding;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isAdding
-                                ? const Color(0xFF00E676).withOpacity(0.15)
-                                : Colors.redAccent.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            isAdding ? '+' : '-',
-                            style: TextStyle(
-                              color: isAdding
-                                  ? const Color(0xFF00E676)
-                                  : Colors.redAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+        return Dialog(
+          backgroundColor: const Color(0xFF141416),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF00E676).withValues(alpha: 0.15),
+                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: const Color(
+                              0xFF00E676,
+                            ).withValues(alpha: 0.1),
+                            width: 1,
                           ),
                         ),
                       ),
-                      _buildQuickAddButton(200, isAdding),
-                      _buildQuickAddButton(500, isAdding),
-                      _buildQuickAddButton(1000, isAdding),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                      child: Text(
+                        isAdding ? 'Add Total Balance' : 'Deduct Total Balance',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    isAdding = !isAdding;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: isAdding
+                                        ? const Color(
+                                            0xFF00E676,
+                                          ).withValues(alpha: 0.15)
+                                        : Colors.redAccent.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isAdding
+                                          ? const Color(
+                                              0xFF00E676,
+                                            ).withValues(alpha: 0.3)
+                                          : Colors.redAccent.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    isAdding ? '+' : '-',
+                                    style: TextStyle(
+                                      color: isAdding
+                                          ? const Color(0xFF00E676)
+                                          : Colors.redAccent,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 24,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: TextField(
+                                  controller: _initialBalanceController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                  decoration: InputDecoration(
+                                    prefixText: '₹ ',
+                                    prefixStyle: const TextStyle(
+                                      fontSize: 28,
+                                      color: Colors.grey,
+                                    ),
+                                    filled: true,
+                                    fillColor: const Color(0xFF1E1E22),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _buildQuickAddButton(200, isAdding),
+                              _buildQuickAddButton(500, isAdding),
+                              _buildQuickAddButton(1000, isAdding),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Cancel',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    final amount =
+                                        double.tryParse(
+                                          _initialBalanceController.text,
+                                        ) ??
+                                        0.0;
+                                    if (amount <= 0) {
+                                      Navigator.pop(context);
+                                      return;
+                                    }
+
+                                    if (!isAdding && amount > currentBalance) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Cannot deduct more than available balance (₹${currentBalance.toStringAsFixed(0)})',
+                                          ),
+                                          backgroundColor: Color(0xFF00E676),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    final newInitialBalance = isAdding
+                                        ? currentInitialBalance + amount
+                                        : currentInitialBalance - amount;
+
+                                    context.read<SavingsBloc>().add(
+                                      UpdateInitialBalance(newInitialBalance),
+                                    );
+                                    Navigator.pop(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF00E676),
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Save',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () {
-                    final amount =
-                        double.tryParse(_initialBalanceController.text) ?? 0.0;
-                    context.read<SavingsBloc>().add(
-                      UpdateInitialBalance(amount),
-                    );
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Save',
-                    style: TextStyle(color: Color(0xFF00E676)),
-                  ),
-                ),
-              ],
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
@@ -133,21 +289,18 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         final currentAmount =
             double.tryParse(_initialBalanceController.text) ?? 0.0;
-        final newAmount = isAdding
-            ? currentAmount + amount
-            : currentAmount - amount;
+        final newAmount = currentAmount + amount; // Just add to the delta
         _initialBalanceController.text = newAmount.toStringAsFixed(0);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isAdding
-              ? const Color(0xFF00E676).withOpacity(0.15)
-              : Colors.redAccent.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF1E1E22),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
-          '${amount.toInt()}',
+          '${isAdding ? '+' : '-'}₹${amount.toStringAsFixed(0)}',
           style: TextStyle(
             color: isAdding ? const Color(0xFF00E676) : Colors.redAccent,
             fontWeight: FontWeight.bold,
@@ -160,41 +313,287 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showSavingsDialog(BuildContext context, double currentGoal) {
     _goalController.text = currentGoal.toStringAsFixed(0);
 
+    Widget buildPresetChip(StateSetter dialogSetState, double amount) {
+      final isSelected = double.tryParse(_goalController.text) == amount;
+      return GestureDetector(
+        onTap: () {
+          dialogSetState(() {
+            _goalController.text = amount.toStringAsFixed(0);
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF00E676).withValues(alpha: 0.15)
+                : const Color(0xFF1E1E22),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF00E676)
+                  : Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            NumberFormat.currency(symbol: '₹', decimalDigits: 0).format(amount),
+            style: TextStyle(
+              color: isSelected
+                  ? const Color(0xFF00E676)
+                  : Colors.white.withValues(alpha: 0.7),
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      );
+    }
+
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E22),
-          title: const Text('Update Savings Goal'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _goalController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Target Goal Amount',
-                ),
-              ),
-            ],
+        return Dialog(
+          backgroundColor: const Color(0xFF141416),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () {
-                final goal = double.tryParse(_goalController.text) ?? 1000.0;
-                context.read<SavingsBloc>().add(UpdateTargetAmount(goal));
-                Navigator.pop(context);
-              },
-              child: const Text(
-                'Save',
-                style: TextStyle(color: Color(0xFF00E676)),
-              ),
-            ),
-          ],
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, dialogSetState) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Premium Gradient Header
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF00E676).withValues(alpha: 0.15),
+                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: const Color(
+                              0xFF00E676,
+                            ).withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF00E676,
+                              ).withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF00E676,
+                                  ).withValues(alpha: 0.2),
+                                  blurRadius: 16,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.track_changes_rounded,
+                              color: Color(0xFF00E676),
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Savings Goal',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Set your monthly milestone',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Interactive body content
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Input field
+                            TextField(
+                              controller: _goalController,
+                              keyboardType: TextInputType.number,
+                              onChanged: (val) {
+                                dialogSetState(() {});
+                              },
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: 'Target Goal Amount',
+                                labelStyle: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.currency_rupee_rounded,
+                                  color: Color(0xFF00E676),
+                                  size: 20,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF00E676),
+                                    width: 2,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFF1E1E22),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // Quick presets chips
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                buildPresetChip(dialogSetState, 3000),
+                                buildPresetChip(dialogSetState, 4000),
+                                buildPresetChip(dialogSetState, 5000),
+                              ],
+                            ),
+                            const SizedBox(height: 28),
+                            // Action Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      side: BorderSide(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      final goal =
+                                          double.tryParse(
+                                            _goalController.text,
+                                          ) ??
+                                          1000.0;
+                                      context.read<SavingsBloc>().add(
+                                        UpdateTargetAmount(goal),
+                                      );
+                                      Navigator.pop(context);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF00E676),
+                                      foregroundColor: Colors.black,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      elevation: 4,
+                                      shadowColor: const Color(
+                                        0xFF00E676,
+                                      ).withValues(alpha: 0.4),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Apply Goal',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -204,7 +603,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Expensio'),
+        title: const Text('Expens.io'),
         actions: [
           CircleAvatar(
             backgroundColor: const Color(0xFF1E1E22),
@@ -241,6 +640,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 final expenses = expenseState.expenses;
+
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _checkAndShowSalaryPopup(context, expenses);
+                });
 
                 // Stat calculations
                 final now = DateTime.now();
@@ -335,47 +738,71 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 // Current Balance calculations
-                final totalExpenses = expenses.fold(
-                  0.0,
-                  (sum, e) => sum + e.amount,
-                );
-                final currentBalance =
-                    savingsState.initialBalance - totalExpenses;
-
-                final oneMonthAgo = DateTime(
-                  now.year,
-                  now.month - 1,
-                  now.day,
-                  now.hour,
-                  now.minute,
-                );
-                final expensesBefore1Month = expenses
-                    .where((e) => e.date.isBefore(oneMonthAgo))
+                final normalExpenses = expenses
+                    .where((e) => !e.isFromSavings)
                     .fold(0.0, (sum, e) => sum + e.amount);
-                final balanceOneMonthAgo =
-                    savingsState.initialBalance - expensesBefore1Month;
+                final currentBalance =
+                    savingsState.initialBalance - normalExpenses;
+
+                final savingsExpenses = expenses
+                    .where((e) => e.isFromSavings)
+                    .fold(0.0, (sum, e) => sum + e.amount);
+
+                final Map<String, double> historicalSavingsMap =
+                    Map<String, double>.from(
+                      DatabaseService.savingsBox.get('historicalSavings') ?? {},
+                    );
+                final rawTotalSavings = historicalSavingsMap.values.fold(
+                  0.0,
+                  (sum, val) => sum + val,
+                );
+                final totalSavings = rawTotalSavings - savingsExpenses;
+
+                final cycleResetInitialBalance =
+                    DatabaseService.savingsBox.get(
+                          'cycleResetInitialBalance',
+                          defaultValue: 0.0,
+                        )
+                        as double;
+                final cycleResetNormalExpenses =
+                    DatabaseService.savingsBox.get(
+                          'cycleResetNormalExpenses',
+                          defaultValue: 0.0,
+                        )
+                        as double;
+
+                final incomeAddedSinceReset =
+                    savingsState.initialBalance - cycleResetInitialBalance;
+                final expensesSinceReset =
+                    normalExpenses - cycleResetNormalExpenses;
 
                 double percentageChange = 0.0;
-                if (balanceOneMonthAgo != 0) {
+                if (incomeAddedSinceReset > 0) {
                   percentageChange =
-                      ((currentBalance - balanceOneMonthAgo) /
-                          balanceOneMonthAgo) *
-                      100;
-                } else if (currentBalance > 0) {
-                  percentageChange = 100.0;
+                      -(expensesSinceReset / incomeAddedSinceReset) * 100;
+                } else if (expensesSinceReset > 0) {
+                  percentageChange = -100.0;
                 }
 
-                final isPositiveChange = percentageChange >= 0;
-                final changeColor = isPositiveChange
+                final isZeroChange = percentageChange == 0.0;
+                final isPositiveChange = percentageChange > 0;
+                final changeColor = isZeroChange
+                    ? Colors.grey
+                    : isPositiveChange
                     ? const Color(0xFF00E676)
                     : Colors.redAccent;
-                final changeSign = isPositiveChange ? '+' : '';
+                final changeSign = isZeroChange
+                    ? ''
+                    : (isPositiveChange ? '+' : '');
 
                 // Category mapping for Donut Chart
                 final categoryMap = <String, double>{};
                 for (final e in expenses) {
-                  categoryMap[e.categoryId] =
-                      (categoryMap[e.categoryId] ?? 0.0) + e.amount;
+                  String catId = e.categoryId;
+                  if (!DatabaseService.defaultCategoryIds.contains(catId)) {
+                    catId = 'others';
+                  }
+                  categoryMap[catId] = (categoryMap[catId] ?? 0.0) + e.amount;
                 }
 
                 return SingleChildScrollView(
@@ -386,58 +813,98 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         // Total Balance Section
                         const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Text(
-                              'Total Balance',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
+                        GestureDetector(
+                          onTap: () => _showInitialBalanceDialog(
+                            context,
+                            savingsState.initialBalance,
+                            currentBalance,
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Total Balance',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.edit,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            GestureDetector(
-                              onTap: () => _showInitialBalanceDialog(
-                                context,
-                                savingsState.initialBalance,
-                              ),
-                              child: const Icon(
-                                Icons.edit,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () =>
+                              _showTotalBalanceTrendDialog(context, expenses),
+                          child: Row(
+                            children: [
+                              Text(
+                                NumberFormat.currency(
+                                  symbol: '₹',
+                                  decimalDigits: 0,
+                                ).format(currentBalance),
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: changeColor.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '$changeSign${percentageChange.toStringAsFixed(1)}%',
+                                  style: TextStyle(
+                                    color: changeColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
-                            Text(
-                              NumberFormat.currency(
-                                symbol: '₹',
-                              ).format(currentBalance),
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
+                            const Icon(
+                              Icons.savings_outlined,
+                              size: 16,
+                              color: Color(0xFF00E676),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Total Savings',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: changeColor.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '$changeSign${percentageChange.toStringAsFixed(1)}%',
-                                style: TextStyle(
-                                  color: changeColor,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            Text(
+                              NumberFormat.currency(
+                                symbol: '₹',
+                                decimalDigits: 0,
+                              ).format(totalSavings),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00E676),
                               ),
                             ),
                           ],
@@ -452,6 +919,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'Today\'s Expense',
                                 todayExpenses,
                                 todayPercentage,
+                                onTap: () =>
+                                    _showExpenseTrendDialog(context, expenses),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -460,6 +929,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'Weekly Expense',
                                 weeklyExpenses,
                                 weeklyPercentage,
+                                onTap: () =>
+                                    _showWeeklyTrendDialog(context, expenses),
                               ),
                             ),
                           ],
@@ -470,6 +941,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           monthlyExpenses,
                           monthlyPercentage,
                           isFullWidth: true,
+                          onTap: () =>
+                              _showMonthlyTrendDialog(context, expenses),
                         ),
                         const SizedBox(height: 24),
 
@@ -588,18 +1061,24 @@ class _HomeScreenState extends State<HomeScreen> {
     double amount,
     double percentageChange, {
     bool isFullWidth = false,
+    VoidCallback? onTap,
   }) {
-    final isPositive = percentageChange >= 0;
+    final isZeroChange = percentageChange == 0.0;
+    final isPositive = percentageChange > 0;
     // For expenses, an increase is bad (red), decrease is good (green)
-    final changeColor = isPositive ? Colors.redAccent : const Color(0xFF00E676);
-    final changeSign = isPositive ? '+' : '';
+    final changeColor = isZeroChange
+        ? Colors.grey
+        : isPositive
+        ? Colors.redAccent
+        : const Color(0xFF00E676);
+    final changeSign = isZeroChange ? '' : (isPositive ? '+' : '');
 
-    return Container(
+    final cardContent = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF141416),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.03)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,7 +1112,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
-                  color: changeColor.withOpacity(0.15),
+                  color: changeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -650,6 +1129,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return GestureDetector(onTap: onTap, child: cardContent);
+    }
+    return cardContent;
   }
 
   Widget _buildSavingsWidget(
@@ -669,7 +1153,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final expensesBefore5th = expenses
-        .where((e) => e.date.isBefore(mostRecent5th))
+        .where((e) => e.date.isBefore(mostRecent5th) && !e.isFromSavings)
         .fold(0.0, (sum, e) => sum + e.amount);
 
     final calculatedSavedAmount =
@@ -699,7 +1183,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFF141416),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.03)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,7 +1198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(
                   Icons.edit,
                   size: 16,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                 ),
               ],
             ),
@@ -790,7 +1274,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: const Color(0xFF09090B),
-          child: Icon(iconData, color: Colors.white),
+          child: Icon(
+            iconData,
+            color:
+                DatabaseService.categoryColors[expense.categoryId] ??
+                Colors.white,
+          ),
         ),
         title: Text(
           category?.name ?? 'Unknown',
@@ -800,14 +1289,1333 @@ class _HomeScreenState extends State<HomeScreen> {
           DateFormat.yMMMd().format(expense.date),
           style: const TextStyle(color: Colors.grey, fontSize: 12),
         ),
-        trailing: Text(
-          '-${NumberFormat.currency(symbol: '₹').format(expense.amount)}',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (expense.isFromSavings) ...[
+              const Icon(
+                Icons.savings_outlined,
+                color: Color(0xFF00E676),
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              '-${NumberFormat.currency(symbol: '₹').format(expense.amount)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  void _showTotalBalanceTrendDialog(
+    BuildContext context,
+    List<Expense> expenses,
+  ) {
+    final now = DateTime.now();
+
+    // Get the cycle reset date, default to the 5th of current or previous month
+    final String? resetDateStr = DatabaseService.savingsBox.get(
+      'cycleResetDate',
+    );
+    DateTime cycleStartDate;
+    if (resetDateStr != null) {
+      cycleStartDate = DateTime.parse(resetDateStr);
+    } else {
+      if (now.day >= 5) {
+        cycleStartDate = DateTime(now.year, now.month, 5);
+      } else {
+        cycleStartDate = DateTime(
+          now.month == 1 ? now.year - 1 : now.year,
+          now.month == 1 ? 12 : now.month - 1,
+          5,
+        );
+      }
+    }
+
+    final int daysSinceStart = now.difference(cycleStartDate).inDays;
+
+    // Safety check if cycle is completely broken
+    final int displayDays = daysSinceStart < 0 ? 0 : daysSinceStart;
+
+    final List<double> dailyBalances = [];
+    final List<String> dailyLabels = [];
+
+    final savingsState = context.read<SavingsBloc>().state;
+    final double initialBalance = savingsState.initialBalance;
+
+    for (int i = 0; i <= displayDays; i++) {
+      final targetDate = cycleStartDate.add(Duration(days: i));
+      final endOfDay = DateTime(
+        targetDate.year,
+        targetDate.month,
+        targetDate.day,
+        23,
+        59,
+        59,
+      );
+
+      final expensesUpToDay = expenses
+          .where((e) {
+            return !e.isFromSavings &&
+                e.date.isAfter(
+                  cycleStartDate.subtract(const Duration(milliseconds: 1)),
+                ) &&
+                e.date.isBefore(endOfDay.add(const Duration(milliseconds: 1)));
+          })
+          .fold(0.0, (sum, e) => sum + e.amount);
+
+      final balanceOnDay = initialBalance - expensesUpToDay;
+      dailyBalances.add(balanceOnDay);
+      dailyLabels.add(DateFormat('MMM d').format(targetDate));
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        int? activeIndex;
+
+        return Dialog(
+          backgroundColor: const Color(0xFF141416),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, dialogSetState) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF00E676).withValues(alpha: 0.15),
+                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: const Color(
+                              0xFF00E676,
+                            ).withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Cycle Burn Down',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            activeIndex != null
+                                ? '₹${dailyBalances[activeIndex!].toStringAsFixed(0)}'
+                                : '₹${dailyBalances.last.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            activeIndex != null
+                                ? dailyLabels[activeIndex!]
+                                : 'Current Balance',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            height: 200,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (dailyBalances.isEmpty) {
+                                  return const SizedBox();
+                                }
+
+                                return GestureDetector(
+                                  onHorizontalDragDown: (details) {
+                                    final maxIndex = dailyBalances.length - 1;
+                                    if (maxIndex <= 0) return;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragStart: (details) {
+                                    final maxIndex = dailyBalances.length - 1;
+                                    if (maxIndex <= 0) return;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragUpdate: (details) {
+                                    final maxIndex = dailyBalances.length - 1;
+                                    if (maxIndex <= 0) return;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  child: CustomPaint(
+                                    painter: ExpenseChartPainter(
+                                      dailyBalances,
+                                      dailyLabels,
+                                      activeIndex,
+                                      showLabels: false,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00E676),
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Close',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showExpenseTrendDialog(BuildContext context, List<Expense> expenses) {
+    final now = DateTime.now();
+    final List<double> weeklyAmounts = [];
+    final List<String> weeklyLabels = [];
+    final List<DateTime> dates = [];
+
+    for (int i = 6; i >= 0; i--) {
+      final date = DateTime(now.year, now.month, now.day - i);
+      dates.add(date);
+
+      final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
+      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+      final daySum = expenses
+          .where(
+            (e) =>
+                e.date.isAfter(
+                  startOfDay.subtract(const Duration(milliseconds: 1)),
+                ) &&
+                e.date.isBefore(endOfDay.add(const Duration(milliseconds: 1))),
+          )
+          .fold(0.0, (sum, e) => sum + e.amount);
+
+      weeklyAmounts.add(daySum);
+      weeklyLabels.add(DateFormat('E').format(date));
+    }
+
+    final totalWeeklyExpenses = weeklyAmounts.fold(
+      0.0,
+      (sum, val) => sum + val,
+    );
+    final averageWeeklyExpenses = totalWeeklyExpenses / 7;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        int? activeIndex;
+
+        return Dialog(
+          backgroundColor: const Color(0xFF141416),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, dialogSetState) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF00E676).withValues(alpha: 0.15),
+                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: const Color(
+                              0xFF00E676,
+                            ).withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E22),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
+                            ),
+                            child: activeIndex != null
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Spent on ${DateFormat('EEEE, MMM d').format(dates[activeIndex!])}:',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        NumberFormat.currency(
+                                          symbol: '₹',
+                                          decimalDigits: 0,
+                                        ).format(weeklyAmounts[activeIndex!]),
+                                        style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Average Daily Spent:',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        NumberFormat.currency(
+                                          symbol: '₹',
+                                          decimalDigits: 0,
+                                        ).format(averageWeeklyExpenses),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 180,
+                            width: double.infinity,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onLongPressStart: (details) {
+                                    final maxIndex = weeklyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onLongPressMoveUpdate: (details) {
+                                    final maxIndex = weeklyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onLongPressEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  onHorizontalDragStart: (details) {
+                                    final maxIndex = weeklyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragUpdate: (details) {
+                                    final maxIndex = weeklyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  child: CustomPaint(
+                                    painter: ExpenseChartPainter(
+                                      weeklyAmounts,
+                                      weeklyLabels,
+                                      activeIndex,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00E676),
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Close',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showWeeklyTrendDialog(BuildContext context, List<Expense> expenses) {
+    final now = DateTime.now();
+    final List<double> weeklyAmounts = [];
+    final List<String> weeklyLabels = [];
+    final List<DateTime> dates = [];
+
+    for (int i = 7; i >= 0; i--) {
+      final endDate = now.subtract(Duration(days: i * 7));
+      final startDate = endDate.subtract(const Duration(days: 6));
+      dates.add(startDate);
+
+      final startOfDay = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+        0,
+        0,
+        0,
+      );
+      final endOfDay = DateTime(
+        endDate.year,
+        endDate.month,
+        endDate.day,
+        23,
+        59,
+        59,
+      );
+
+      final weekSum = expenses
+          .where(
+            (e) =>
+                e.date.isAfter(
+                  startOfDay.subtract(const Duration(milliseconds: 1)),
+                ) &&
+                e.date.isBefore(endOfDay.add(const Duration(milliseconds: 1))),
+          )
+          .fold(0.0, (sum, e) => sum + e.amount);
+
+      weeklyAmounts.add(weekSum);
+      weeklyLabels.add('${startDate.day}/${startDate.month}');
+    }
+
+    final totalWeeklyExpenses = weeklyAmounts.fold(
+      0.0,
+      (sum, val) => sum + val,
+    );
+    final averageWeeklyExpenses = totalWeeklyExpenses / 8;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        int? activeIndex;
+
+        return Dialog(
+          backgroundColor: const Color(0xFF141416),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, dialogSetState) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF00E676).withValues(alpha: 0.15),
+                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: const Color(
+                              0xFF00E676,
+                            ).withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E22),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
+                            ),
+                            child: activeIndex != null
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Week of ${DateFormat('MMM d').format(dates[activeIndex!])}:',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        NumberFormat.currency(
+                                          symbol: '₹',
+                                          decimalDigits: 0,
+                                        ).format(weeklyAmounts[activeIndex!]),
+                                        style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Average Weekly Spent:',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        NumberFormat.currency(
+                                          symbol: '₹',
+                                          decimalDigits: 0,
+                                        ).format(averageWeeklyExpenses),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 180,
+                            width: double.infinity,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onLongPressStart: (details) {
+                                    final maxIndex = weeklyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onLongPressMoveUpdate: (details) {
+                                    final maxIndex = weeklyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onLongPressEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  onHorizontalDragStart: (details) {
+                                    final maxIndex = weeklyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragUpdate: (details) {
+                                    final maxIndex = weeklyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  child: CustomPaint(
+                                    painter: ExpenseChartPainter(
+                                      weeklyAmounts,
+                                      weeklyLabels,
+                                      activeIndex,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00E676),
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Close',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMonthlyTrendDialog(BuildContext context, List<Expense> expenses) {
+    final now = DateTime.now();
+    final List<double> monthlyAmounts = [];
+    final List<String> monthlyLabels = [];
+    final List<DateTime> dates = [];
+
+    for (int i = 11; i >= 0; i--) {
+      final targetDate = DateTime(now.year, now.month - i, 1);
+      final startOfMonth = DateTime(
+        targetDate.year,
+        targetDate.month,
+        1,
+        0,
+        0,
+        0,
+      );
+
+      // End of month is the day before the 1st of the next month
+      final endOfMonth = DateTime(
+        targetDate.year,
+        targetDate.month + 1,
+        1,
+        0,
+        0,
+        0,
+      ).subtract(const Duration(milliseconds: 1));
+
+      dates.add(startOfMonth);
+
+      final monthSum = expenses
+          .where(
+            (e) =>
+                e.date.isAfter(
+                  startOfMonth.subtract(const Duration(milliseconds: 1)),
+                ) &&
+                e.date.isBefore(
+                  endOfMonth.add(const Duration(milliseconds: 1)),
+                ),
+          )
+          .fold(0.0, (sum, e) => sum + e.amount);
+
+      monthlyAmounts.add(monthSum);
+      monthlyLabels.add(DateFormat('MMM').format(startOfMonth));
+    }
+
+    final totalMonthlyExpenses = monthlyAmounts.fold(
+      0.0,
+      (sum, val) => sum + val,
+    );
+    final averageMonthlyExpenses = totalMonthlyExpenses / 12;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        int? activeIndex;
+
+        return Dialog(
+          backgroundColor: const Color(0xFF141416),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, dialogSetState) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF00E676).withValues(alpha: 0.15),
+                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: const Color(
+                              0xFF00E676,
+                            ).withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E22),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
+                            ),
+                            child: activeIndex != null
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Spent in ${DateFormat('MMMM yyyy').format(dates[activeIndex!])}:',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        NumberFormat.currency(
+                                          symbol: '₹',
+                                          decimalDigits: 0,
+                                        ).format(monthlyAmounts[activeIndex!]),
+                                        style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Average Monthly Spent:',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        NumberFormat.currency(
+                                          symbol: '₹',
+                                          decimalDigits: 0,
+                                        ).format(averageMonthlyExpenses),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 180,
+                            width: double.infinity,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onLongPressStart: (details) {
+                                    final maxIndex = monthlyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onLongPressMoveUpdate: (details) {
+                                    final maxIndex = monthlyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onLongPressEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  onHorizontalDragStart: (details) {
+                                    final maxIndex = monthlyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragUpdate: (details) {
+                                    final maxIndex = monthlyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  child: CustomPaint(
+                                    painter: ExpenseChartPainter(
+                                      monthlyAmounts,
+                                      monthlyLabels,
+                                      activeIndex,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00E676),
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Close',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _checkAndShowSalaryPopup(BuildContext context, List<Expense> expenses) {
+    final now = DateTime.now();
+    if (now.day < 5) return; // Only from 5th onwards
+
+    final cycleStartMonth = now.month == 1 ? 12 : now.month - 1;
+    final cycleStartYear = now.month == 1 ? now.year - 1 : now.year;
+    final completedMonthKey =
+        "$cycleStartYear-${cycleStartMonth.toString().padLeft(2, '0')}";
+
+    final salaryCreditedMonth = DatabaseService.savingsBox.get(
+      'salaryCreditedMonth',
+    );
+    if (salaryCreditedMonth == completedMonthKey) return; // Already answered
+
+    if (_isShowingSalaryPopup) return;
+    _isShowingSalaryPopup = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Force them to answer
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color(0xFF141416),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF00E676).withValues(alpha: 0.15),
+                        const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: const Color(0xFF00E676).withValues(alpha: 0.1),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet,
+                        color: Color(0xFF00E676),
+                        size: 48,
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        'New Month Cycle! 🎉',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Has your salary been credited for this month?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'If yes, your remaining balance from last month will be safely archived into Savings, and your Total Balance will reset.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                _isShowingSalaryPopup = false;
+                                Navigator.pop(context);
+                              },
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Not Yet',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                _isShowingSalaryPopup = false;
+                                DatabaseService.savingsBox.put(
+                                  'salaryCreditedMonth',
+                                  completedMonthKey,
+                                );
+
+                                final currentExpenses = context
+                                    .read<ExpenseBloc>()
+                                    .state
+                                    .expenses;
+                                final normalExpenses = currentExpenses
+                                    .where((e) => !e.isFromSavings)
+                                    .fold(0.0, (sum, e) => sum + e.amount);
+
+                                final currentBalance =
+                                    context
+                                        .read<SavingsBloc>()
+                                        .state
+                                        .initialBalance -
+                                    normalExpenses;
+
+                                context.read<SavingsBloc>().add(
+                                  ArchiveCycle(
+                                    currentBalance,
+                                    completedMonthKey,
+                                  ),
+                                );
+                                context.read<SavingsBloc>().add(
+                                  UpdateInitialBalance(normalExpenses),
+                                );
+
+                                DatabaseService.savingsBox.put(
+                                  'cycleResetNormalExpenses',
+                                  normalExpenses,
+                                );
+                                DatabaseService.savingsBox.put(
+                                  'cycleResetInitialBalance',
+                                  normalExpenses,
+                                );
+
+                                Navigator.pop(context);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Balance reset to 0! You can now add your new salary.',
+                                    ),
+                                    backgroundColor: Color(0xFF00E676),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00E676),
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Yes, Credited!',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -882,14 +2690,21 @@ class DonutChartPainter extends CustomPainter {
 
   DonutChartPainter(this.categories, {this.touchedCategoryId});
 
-  final List<Color> colors = [
-    const Color(0xFF00E676),
-    Colors.blueAccent,
-    Colors.deepPurpleAccent,
-    Colors.orangeAccent,
-    Colors.redAccent,
-    Colors.yellowAccent,
-  ];
+  final Map<String, Color> categoryColors = {
+    'rent': const Color(0xFF2563EB),
+    'petrol': const Color(0xFFF97316),
+    'bakery': const Color(0xFFD97706),
+    'food': const Color(0xFFEF4444),
+    'grocery': const Color(0xFF22C55E),
+    'shopping': const Color(0xFFA855F7),
+    'egg': const Color(0xFFEAB308),
+    'travel': const Color(0xFF14B8A6),
+    'allowance': const Color(0xFF10B981),
+    'entertainment': const Color(0xFFEC4899),
+    'lent': const Color(0xFF6B7280),
+    'misc': const Color(0xFF94A3B8),
+    'others': const Color(0xFF06B6D4),
+  };
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -901,13 +2716,12 @@ class DonutChartPainter extends CustomPainter {
 
     double startAngle = -pi / 2;
 
-    int colorIndex = 0;
     categories.forEach((catId, amount) {
       final sweepAngle = (amount / total) * 2 * pi;
       final isTouched = catId == touchedCategoryId;
 
       final paint = Paint()
-        ..color = colors[colorIndex % colors.length]
+        ..color = categoryColors[catId] ?? Colors.white
         ..style = PaintingStyle.stroke
         ..strokeWidth = isTouched ? 32 : 24;
 
@@ -950,12 +2764,11 @@ class DonutChartPainter extends CustomPainter {
       }
 
       startAngle += sweepAngle;
-      colorIndex++;
     });
 
     // Outer thin boundary
     final outlinePaint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withValues(alpha: 0.05)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawCircle(center, radius + 15, outlinePaint);
@@ -1026,7 +2839,7 @@ class DonutChartCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF141416),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.03)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1073,10 +2886,12 @@ class DonutChartCard extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     AutoSizeText(
-                                      DatabaseService.categoryBox
-                                              .get(touchedCategoryId)
-                                              ?.name ??
-                                          'Unknown',
+                                      touchedCategoryId == 'others'
+                                          ? 'Others'
+                                          : (DatabaseService.categoryBox
+                                                    .get(touchedCategoryId)
+                                                    ?.name ??
+                                                'Unknown'),
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
@@ -1108,5 +2923,171 @@ class DonutChartCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class ExpenseChartPainter extends CustomPainter {
+  final List<double> values;
+  final List<String> labels;
+  final int? activeIndex;
+  final bool showLabels;
+
+  ExpenseChartPainter(
+    this.values,
+    this.labels,
+    this.activeIndex, {
+    this.showLabels = true,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double maxVal = values.fold(0.0, (max, val) => val > max ? val : max);
+    final double maxValue = maxVal > 0 ? maxVal : 100.0;
+
+    final double width = size.width;
+    final double height = size.height;
+
+    final double topPadding = 16.0;
+    final double bottomPadding = 24.0;
+    final double graphHeight = height - topPadding - bottomPadding;
+
+    final int pointCount = values.length;
+    final double spacing = pointCount > 1 ? width / (pointCount - 1) : width;
+
+    final gridPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..strokeWidth = 1.0;
+
+    for (int i = 0; i <= 3; i++) {
+      final double y = topPadding + (graphHeight / 3) * i;
+      canvas.drawLine(Offset(0, y), Offset(width, y), gridPaint);
+    }
+
+    final List<Offset> points = [];
+    for (int i = 0; i < pointCount; i++) {
+      final double x = i * spacing;
+      final double y =
+          topPadding + graphHeight - (values[i] / maxValue) * graphHeight;
+      points.add(Offset(x, y));
+    }
+
+    if (points.isNotEmpty) {
+      final fillPath = Path()..moveTo(0, topPadding + graphHeight);
+
+      for (int i = 0; i < points.length; i++) {
+        fillPath.lineTo(points[i].dx, points[i].dy);
+      }
+      fillPath.lineTo(width, topPadding + graphHeight);
+      fillPath.close();
+
+      final fillGradient = LinearGradient(
+        colors: [
+          const Color(0xFF00E676).withValues(alpha: 0.12),
+          const Color(0xFF00E676).withValues(alpha: 0.0),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+
+      final fillPaint = Paint()
+        ..shader = fillGradient.createShader(
+          Rect.fromLTWH(0, topPadding, width, graphHeight),
+        )
+        ..style = PaintingStyle.fill;
+
+      canvas.drawPath(fillPath, fillPaint);
+    }
+
+    final linePaint = Paint()
+      ..color = const Color(0xFF00E676)
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final linePath = Path();
+    if (points.isNotEmpty) {
+      linePath.moveTo(points[0].dx, points[0].dy);
+      for (int i = 1; i < points.length; i++) {
+        linePath.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(linePath, linePaint);
+    }
+
+    final textPainter = TextPainter(
+      textDirection: ui.TextDirection.ltr,
+      textAlign: TextAlign.center,
+    );
+
+    final textStyle = TextStyle(
+      color: Colors.white.withValues(alpha: 0.4),
+      fontSize: 10,
+      fontWeight: FontWeight.w500,
+    );
+
+    if (showLabels) {
+      for (int i = 0; i < pointCount; i++) {
+        textPainter.text = TextSpan(
+          text: labels[i],
+          style: activeIndex == i
+              ? textStyle.copyWith(
+                  color: const Color(0xFF00E676),
+                  fontWeight: FontWeight.bold,
+                )
+              : textStyle,
+        );
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(
+            points[i].dx - textPainter.width / 2,
+            height - bottomPadding + 8,
+          ),
+        );
+      }
+    }
+
+    if (activeIndex != null && activeIndex! >= 0 && activeIndex! < pointCount) {
+      final activePoint = points[activeIndex!];
+
+      final guidePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.15)
+        ..strokeWidth = 1.0;
+
+      double startY = topPadding;
+      final double endY = topPadding + graphHeight;
+      final double dashWidth = 4.0;
+      final double dashSpace = 4.0;
+
+      while (startY < endY) {
+        canvas.drawLine(
+          Offset(activePoint.dx, startY),
+          Offset(activePoint.dx, startY + dashWidth),
+          guidePaint,
+        );
+        startY += dashWidth + dashSpace;
+      }
+
+      final glowPaint = Paint()
+        ..color = const Color(0xFF00E676).withValues(alpha: 0.25)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(activePoint, 12.0, glowPaint);
+
+      final midGlowPaint = Paint()
+        ..color = const Color(0xFF00E676).withValues(alpha: 0.5)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(activePoint, 7.0, midGlowPaint);
+
+      final solidPaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(activePoint, 4.0, solidPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant ExpenseChartPainter oldDelegate) {
+    return oldDelegate.values != values ||
+        oldDelegate.labels != labels ||
+        oldDelegate.activeIndex != activeIndex;
   }
 }

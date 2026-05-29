@@ -69,7 +69,9 @@ class AnalyticsScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF141416),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.03)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
                   child: CustomPaint(
                     painter: LineChartPainter(chartData),
@@ -144,7 +146,7 @@ class AnalyticsScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: percentage / 100,
-                      backgroundColor: Colors.white.withOpacity(0.05),
+                      backgroundColor: Colors.white.withValues(alpha: 0.05),
                       valueColor: const AlwaysStoppedAnimation<Color>(
                         Color(0xFF00E676),
                       ),
@@ -240,8 +242,8 @@ class LineChartPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          const Color(0xFF00E676).withOpacity(0.15),
-          const Color(0xFF00E676).withOpacity(0.0),
+          const Color(0xFF00E676).withValues(alpha: 0.15),
+          const Color(0xFF00E676).withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawPath(fillPath, fillPaint);
@@ -256,7 +258,7 @@ class LineChartPainter extends CustomPainter {
 
     // Draw Glow points
     final pointPaint = Paint()..color = const Color(0xFF00E676);
-    final shadowPaint = Paint()..color = Colors.white.withOpacity(0.2);
+    final shadowPaint = Paint()..color = Colors.white.withValues(alpha: 0.2);
 
     for (final p in points) {
       canvas.drawCircle(p, 6, shadowPaint);
