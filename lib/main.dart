@@ -1,6 +1,6 @@
 import 'package:expensio/blocs/expense/expense_bloc.dart';
 import 'package:expensio/blocs/savings/savings_bloc.dart';
-import 'package:expensio/screen/main_navigation_screen.dart';
+import 'package:expensio/screen/splash_screen.dart';
 import 'package:expensio/services/database_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
         BlocProvider<SavingsBloc>(create: (context) => SavingsBloc()),
       ],
       child: MaterialApp(
-        title: 'Expensio',
+        title: 'Expens.io',
         debugShowCheckedModeBanner: false,
         theme: ThemeData.dark().copyWith(
           scaffoldBackgroundColor: const Color(0xFF09090B),
@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const MainNavigationScreen(),
+        home: const SplashScreen(),
       ),
     );
   }

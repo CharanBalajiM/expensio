@@ -22,6 +22,9 @@ class Expense extends HiveObject {
   @HiveField(5, defaultValue: false)
   final bool isFromSavings;
 
+  @HiveField(6, defaultValue: false)
+  final bool isIncome;
+
   Expense({
     required this.id,
     required this.amount,
@@ -29,5 +32,6 @@ class Expense extends HiveObject {
     required this.categoryId,
     this.note,
     this.isFromSavings = false,
+    this.isIncome = false,
   });
 }

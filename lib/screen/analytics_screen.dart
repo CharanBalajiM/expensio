@@ -66,7 +66,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     return allExpenses.where((e) {
-      if (e.isFromSavings) return false;
+      if (e.isFromSavings || e.isIncome) return false;
       return e.date.isAfter(
             startDate.subtract(const Duration(milliseconds: 1)),
           ) &&

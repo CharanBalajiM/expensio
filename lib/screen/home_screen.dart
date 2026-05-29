@@ -41,11 +41,14 @@ class _HomeScreenState extends State<HomeScreen> {
     double currentBalance,
   ) {
     _initialBalanceController.text = '';
+    final noteController = TextEditingController();
+    String? selectedCategory;
 
     showDialog(
       context: context,
       builder: (context) {
         bool isAdding = true;
+        bool showError = false;
         return Dialog(
           backgroundColor: const Color(0xFF141416),
           shape: RoundedRectangleBorder(
@@ -100,179 +103,337 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    isAdding = !isAdding;
-                                  });
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: isAdding
-                                        ? const Color(
-                                            0xFF00E676,
-                                          ).withValues(alpha: 0.15)
-                                        : Colors.redAccent.withValues(
-                                            alpha: 0.15,
-                                          ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      isAdding = !isAdding;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
                                       color: isAdding
                                           ? const Color(
                                               0xFF00E676,
-                                            ).withValues(alpha: 0.3)
+                                            ).withValues(alpha: 0.15)
                                           : Colors.redAccent.withValues(
-                                              alpha: 0.3,
+                                              alpha: 0.15,
                                             ),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    isAdding ? '+' : '-',
-                                    style: TextStyle(
-                                      color: isAdding
-                                          ? const Color(0xFF00E676)
-                                          : Colors.redAccent,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 24,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextField(
-                                  controller: _initialBalanceController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                  decoration: InputDecoration(
-                                    prefixText: '₹ ',
-                                    prefixStyle: const TextStyle(
-                                      fontSize: 28,
-                                      color: Colors.grey,
-                                    ),
-                                    filled: true,
-                                    fillColor: const Color(0xFF1E1E22),
-                                    border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(16),
-                                      borderSide: BorderSide.none,
+                                      border: Border.all(
+                                        color: isAdding
+                                            ? const Color(
+                                                0xFF00E676,
+                                              ).withValues(alpha: 0.3)
+                                            : Colors.redAccent.withValues(
+                                                alpha: 0.3,
+                                              ),
+                                      ),
                                     ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 16,
+                                    child: Text(
+                                      isAdding ? '+' : '-',
+                                      style: TextStyle(
+                                        color: isAdding
+                                            ? const Color(0xFF00E676)
+                                            : Colors.redAccent,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 24,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _buildQuickAddButton(200, isAdding),
-                              _buildQuickAddButton(500, isAdding),
-                              _buildQuickAddButton(1000, isAdding),
-                            ],
-                          ),
-                          const SizedBox(height: 32),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _initialBalanceController,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                    decoration: InputDecoration(
+                                      prefixText: '₹ ',
+                                      prefixStyle: const TextStyle(
+                                        fontSize: 28,
+                                        color: Colors.grey,
+                                      ),
+                                      filled: true,
+                                      fillColor: const Color(0xFF1E1E22),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 16,
+                                          ),
+                                    ),
+                                    onChanged: (_) {
+                                      if (showError) setState(() {});
+                                    },
+                                  ),
+                                ),
+                                if (showError &&
+                                    (double.tryParse(
+                                              _initialBalanceController.text,
+                                            ) ??
+                                            0.0) <=
+                                        0)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Text(
+                                      '*required',
+                                      style: TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Cancel',
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            if (isAdding) ...[
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Category',
                                     style: TextStyle(
                                       color: Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    final amount =
-                                        double.tryParse(
-                                          _initialBalanceController.text,
-                                        ) ??
-                                        0.0;
-                                    if (amount <= 0) {
-                                      Navigator.pop(context);
-                                      return;
-                                    }
-
-                                    if (!isAdding && amount > currentBalance) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Cannot deduct more than available balance (₹${currentBalance.toStringAsFixed(0)})',
-                                          ),
-                                          backgroundColor: Color(0xFF00E676),
-                                        ),
-                                      );
-                                      return;
-                                    }
-
-                                    final newInitialBalance = isAdding
-                                        ? currentInitialBalance + amount
-                                        : currentInitialBalance - amount;
-
-                                    context.read<SavingsBloc>().add(
-                                      UpdateInitialBalance(newInitialBalance),
-                                    );
-                                    Navigator.pop(context);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF00E676),
-                                    foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Save',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                     ),
                                   ),
+                                  if (showError && selectedCategory == null)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8),
+                                      child: Text(
+                                        '*required',
+                                        style: TextStyle(
+                                          color: Colors.redAccent,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                child: Row(
+                                  children: [
+                                    _buildIncomeCategoryChip(
+                                      'Salary',
+                                      Icons.account_balance_wallet,
+                                      selectedCategory,
+                                      (cat) => setState(
+                                        () => selectedCategory = cat,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildIncomeCategoryChip(
+                                      'Allowance',
+                                      Icons.card_giftcard,
+                                      selectedCategory,
+                                      (cat) => setState(
+                                        () => selectedCategory = cat,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildIncomeCategoryChip(
+                                      'Interest',
+                                      Icons.trending_up,
+                                      selectedCategory,
+                                      (cat) => setState(
+                                        () => selectedCategory = cat,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildIncomeCategoryChip(
+                                      'Other',
+                                      Icons.more_horiz,
+                                      selectedCategory,
+                                      (cat) => setState(
+                                        () => selectedCategory = cat,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: noteController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: 'Note (Optional)',
+                                  hintStyle: const TextStyle(
+                                    color: Colors.grey,
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFF1E1E22),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
                             ],
-                          ),
-                        ],
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _buildQuickAddButton(200, isAdding),
+                                _buildQuickAddButton(500, isAdding),
+                                _buildQuickAddButton(1000, isAdding),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      final amount =
+                                          double.tryParse(
+                                            _initialBalanceController.text,
+                                          ) ??
+                                          0.0;
+
+                                      if (amount <= 0 ||
+                                          (isAdding &&
+                                              selectedCategory == null)) {
+                                        setState(() {
+                                          showError = true;
+                                        });
+                                        return;
+                                      }
+
+                                      if (!isAdding) {
+                                        if (amount > currentBalance) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Cannot deduct more than available balance (₹${currentBalance.toStringAsFixed(0)})',
+                                              ),
+                                              backgroundColor: const Color(
+                                                0xFF00E676,
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                        final newInitialBalance =
+                                            currentInitialBalance - amount;
+                                        context.read<SavingsBloc>().add(
+                                          UpdateInitialBalance(
+                                            newInitialBalance,
+                                          ),
+                                        );
+                                      } else {
+                                        // Get or create category
+                                        final catId =
+                                            'income_${selectedCategory!.toLowerCase()}';
+                                        if (!DatabaseService.categoryBox
+                                            .containsKey(catId)) {
+                                          DatabaseService.categoryBox.put(
+                                            catId,
+                                            Category(
+                                              id: catId,
+                                              name: selectedCategory!,
+                                              iconCodePoint: Icons
+                                                  .attach_money
+                                                  .codePoint
+                                                  .toString(),
+                                            ),
+                                          );
+                                        }
+
+                                        context.read<ExpenseBloc>().add(
+                                          AddExpenseEvent(
+                                            Expense(
+                                              id: DateTime.now()
+                                                  .millisecondsSinceEpoch
+                                                  .toString(),
+                                              amount: amount,
+                                              date: DateTime.now(),
+                                              categoryId: catId,
+                                              note:
+                                                  noteController.text
+                                                      .trim()
+                                                      .isEmpty
+                                                  ? null
+                                                  : noteController.text.trim(),
+                                              isIncome: true,
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      Navigator.pop(context);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF00E676),
+                                      foregroundColor: Colors.black,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Save',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -282,6 +443,53 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildIncomeCategoryChip(
+    String cat,
+    IconData icon,
+    String? selectedCategory,
+    Function(String) onSelect,
+  ) {
+    final isSelected = selectedCategory == cat;
+    return GestureDetector(
+      onTap: () => onSelect(cat),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF00E676).withValues(alpha: 0.15)
+              : const Color(0xFF141416),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF00E676)
+                : Colors.white.withValues(alpha: 0.05),
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected
+                  ? const Color(0xFF00E676)
+                  : Colors.white.withValues(alpha: 0.5),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              cat,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF00E676) : Colors.white,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -651,6 +859,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 final todayExpenses = expenses
                     .where(
                       (e) =>
+                          !e.isFromSavings &&
+                          !e.isIncome &&
                           e.date.day == now.day &&
                           e.date.month == now.month &&
                           e.date.year == now.year,
@@ -661,6 +871,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 final yesterdayExpenses = expenses
                     .where(
                       (e) =>
+                          !e.isFromSavings &&
+                          !e.isIncome &&
                           e.date.day == yesterday.day &&
                           e.date.month == yesterday.month &&
                           e.date.year == yesterday.year,
@@ -685,8 +897,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 final weeklyExpenses = expenses
                     .where(
                       (e) =>
-                          e.date.isAfter(startOfWeek) ||
-                          e.date.isAtSameMomentAs(startOfWeek),
+                          !e.isFromSavings &&
+                          !e.isIncome &&
+                          (e.date.isAfter(startOfWeek) ||
+                              e.date.isAtSameMomentAs(startOfWeek)),
                     )
                     .fold(0.0, (sum, e) => sum + e.amount);
 
@@ -696,6 +910,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 final lastWeekExpenses = expenses
                     .where(
                       (e) =>
+                          !e.isFromSavings &&
+                          !e.isIncome &&
                           (e.date.isAfter(startOfLastWeek) ||
                               e.date.isAtSameMomentAs(startOfLastWeek)) &&
                           e.date.isBefore(startOfWeek),
@@ -714,7 +930,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 final monthlyExpenses = expenses
                     .where(
                       (e) =>
-                          e.date.month == now.month && e.date.year == now.year,
+                          !e.isFromSavings &&
+                          !e.isIncome &&
+                          e.date.month == now.month &&
+                          e.date.year == now.year,
                     )
                     .fold(0.0, (sum, e) => sum + e.amount);
 
@@ -723,6 +942,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 final lastMonthExpenses = expenses
                     .where(
                       (e) =>
+                          !e.isFromSavings &&
+                          !e.isIncome &&
                           e.date.month == lastMonth &&
                           e.date.year == lastMonthYear,
                     )
@@ -740,10 +961,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Current Balance calculations
                 final normalExpenses = expenses
-                    .where((e) => !e.isFromSavings)
+                    .where((e) => !e.isFromSavings && !e.isIncome)
                     .fold(0.0, (sum, e) => sum + e.amount);
+
+                final totalIncome = expenses
+                    .where((e) => e.isIncome)
+                    .fold(0.0, (sum, e) => sum + e.amount);
+
                 final currentBalance =
-                    savingsState.initialBalance - normalExpenses;
+                    savingsState.initialBalance + totalIncome - normalExpenses;
 
                 final savingsExpenses = expenses
                     .where((e) => e.isFromSavings)
@@ -799,6 +1025,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Category mapping for Donut Chart
                 final categoryMap = <String, double>{};
                 for (final e in expenses) {
+                  if (e.isFromSavings || e.isIncome) continue;
+
                   String catId = e.categoryId;
                   if (!DatabaseService.defaultCategoryIds.contains(catId)) {
                     catId = 'others';
@@ -1154,7 +1382,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final expensesBefore5th = expenses
-        .where((e) => e.date.isBefore(mostRecent5th) && !e.isFromSavings)
+        .where(
+          (e) =>
+              e.date.isBefore(mostRecent5th) && !e.isFromSavings && !e.isIncome,
+        )
         .fold(0.0, (sum, e) => sum + e.amount);
 
     final calculatedSavedAmount =
@@ -1364,6 +1595,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final expensesUpToDay = expenses
           .where((e) {
             return !e.isFromSavings &&
+                !e.isIncome &&
                 e.date.isAfter(
                   cycleStartDate.subtract(const Duration(milliseconds: 1)),
                 ) &&
@@ -2548,14 +2780,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                     .state
                                     .expenses;
                                 final normalExpenses = currentExpenses
-                                    .where((e) => !e.isFromSavings)
+                                    .where(
+                                      (e) => !e.isFromSavings && !e.isIncome,
+                                    )
+                                    .fold(0.0, (sum, e) => sum + e.amount);
+                                final totalIncome = currentExpenses
+                                    .where((e) => e.isIncome)
                                     .fold(0.0, (sum, e) => sum + e.amount);
 
+                                final currentInitialBalance = context
+                                    .read<SavingsBloc>()
+                                    .state
+                                    .initialBalance;
                                 final currentBalance =
-                                    context
-                                        .read<SavingsBloc>()
-                                        .state
-                                        .initialBalance -
+                                    currentInitialBalance +
+                                    totalIncome -
                                     normalExpenses;
 
                                 context.read<SavingsBloc>().add(
