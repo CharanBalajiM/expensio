@@ -12,6 +12,9 @@ import '../models/category_model.dart';
 import '../services/database_service.dart';
 import 'main_navigation_screen.dart';
 import 'add_expense_screen.dart';
+import '../widgets/boiling_fab.dart';
+import '../widgets/no_data_animation.dart';
+import '../widgets/minimal_io_animator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -811,476 +814,575 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Expens.io'),
-        actions: [
-          CircleAvatar(
-            backgroundColor: const Color(0xFF1E1E22),
-            child: IconButton(
-              icon: const Icon(Icons.add, color: Color(0xFF00E676)),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddExpenseScreen(),
-                  ),
-                );
-              },
+        title: Row(
+          children: [
+            const Text(
+              'E',
+              style: TextStyle(color: ui.Color.fromARGB(255, 0, 139, 69)),
             ),
-          ),
-          const SizedBox(width: 16),
-        ],
+            const MinimalIoAnimator(),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          if (_touchedChartCategoryId != null) {
-            setState(() {
-              _touchedChartCategoryId = null;
-            });
-          }
-        },
-        child: BlocBuilder<ExpenseBloc, ExpenseState>(
-          builder: (context, expenseState) {
-            return BlocBuilder<SavingsBloc, SavingsState>(
-              builder: (context, savingsState) {
-                if (expenseState.isLoading || savingsState.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final expenses = expenseState.expenses;
-
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _checkAndShowSalaryPopup(context, expenses);
+      body: Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              if (_touchedChartCategoryId != null) {
+                setState(() {
+                  _touchedChartCategoryId = null;
                 });
+              }
+            },
+            child: BlocBuilder<ExpenseBloc, ExpenseState>(
+              builder: (context, expenseState) {
+                return BlocBuilder<SavingsBloc, SavingsState>(
+                  builder: (context, savingsState) {
+                    if (expenseState.isLoading || savingsState.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                // Stat calculations
-                final now = DateTime.now();
-                final todayExpenses = expenses
-                    .where(
-                      (e) =>
-                          !e.isFromSavings &&
-                          !e.isIncome &&
-                          e.date.day == now.day &&
-                          e.date.month == now.month &&
-                          e.date.year == now.year,
-                    )
-                    .fold(0.0, (sum, e) => sum + e.amount);
+                    final expenses = expenseState.expenses;
 
-                final yesterday = now.subtract(const Duration(days: 1));
-                final yesterdayExpenses = expenses
-                    .where(
-                      (e) =>
-                          !e.isFromSavings &&
-                          !e.isIncome &&
-                          e.date.day == yesterday.day &&
-                          e.date.month == yesterday.month &&
-                          e.date.year == yesterday.year,
-                    )
-                    .fold(0.0, (sum, e) => sum + e.amount);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _checkAndShowSalaryPopup(context, expenses);
+                    });
 
-                double todayPercentage = 0.0;
-                if (yesterdayExpenses > 0) {
-                  todayPercentage =
-                      ((todayExpenses - yesterdayExpenses) /
-                          yesterdayExpenses) *
-                      100;
-                } else if (todayExpenses > 0) {
-                  todayPercentage = 100.0;
-                }
+                    // Stat calculations
+                    final now = DateTime.now();
+                    final todayExpenses = expenses
+                        .where(
+                          (e) =>
+                              !e.isFromSavings &&
+                              !e.isIncome &&
+                              e.date.day == now.day &&
+                              e.date.month == now.month &&
+                              e.date.year == now.year,
+                        )
+                        .fold(0.0, (sum, e) => sum + e.amount);
 
-                final startOfWeek = DateTime(
-                  now.year,
-                  now.month,
-                  now.day,
-                ).subtract(Duration(days: now.weekday - 1));
-                final weeklyExpenses = expenses
-                    .where(
-                      (e) =>
-                          !e.isFromSavings &&
-                          !e.isIncome &&
-                          (e.date.isAfter(startOfWeek) ||
-                              e.date.isAtSameMomentAs(startOfWeek)),
-                    )
-                    .fold(0.0, (sum, e) => sum + e.amount);
+                    final yesterday = now.subtract(const Duration(days: 1));
+                    final yesterdayExpenses = expenses
+                        .where(
+                          (e) =>
+                              !e.isFromSavings &&
+                              !e.isIncome &&
+                              e.date.day == yesterday.day &&
+                              e.date.month == yesterday.month &&
+                              e.date.year == yesterday.year,
+                        )
+                        .fold(0.0, (sum, e) => sum + e.amount);
 
-                final startOfLastWeek = startOfWeek.subtract(
-                  const Duration(days: 7),
-                );
-                final lastWeekExpenses = expenses
-                    .where(
-                      (e) =>
-                          !e.isFromSavings &&
-                          !e.isIncome &&
-                          (e.date.isAfter(startOfLastWeek) ||
-                              e.date.isAtSameMomentAs(startOfLastWeek)) &&
-                          e.date.isBefore(startOfWeek),
-                    )
-                    .fold(0.0, (sum, e) => sum + e.amount);
+                    double todayPercentage = 0.0;
+                    if (yesterdayExpenses > 0) {
+                      todayPercentage =
+                          ((todayExpenses - yesterdayExpenses) /
+                              yesterdayExpenses) *
+                          100;
+                    } else if (todayExpenses > 0) {
+                      todayPercentage = 100.0;
+                    }
 
-                double weeklyPercentage = 0.0;
-                if (lastWeekExpenses > 0) {
-                  weeklyPercentage =
-                      ((weeklyExpenses - lastWeekExpenses) / lastWeekExpenses) *
-                      100;
-                } else if (weeklyExpenses > 0) {
-                  weeklyPercentage = 100.0;
-                }
+                    final startOfWeek = DateTime(
+                      now.year,
+                      now.month,
+                      now.day,
+                    ).subtract(Duration(days: now.weekday - 1));
+                    final weeklyExpenses = expenses
+                        .where(
+                          (e) =>
+                              !e.isFromSavings &&
+                              !e.isIncome &&
+                              (e.date.isAfter(startOfWeek) ||
+                                  e.date.isAtSameMomentAs(startOfWeek)),
+                        )
+                        .fold(0.0, (sum, e) => sum + e.amount);
 
-                final monthlyExpenses = expenses
-                    .where(
-                      (e) =>
-                          !e.isFromSavings &&
-                          !e.isIncome &&
-                          e.date.month == now.month &&
-                          e.date.year == now.year,
-                    )
-                    .fold(0.0, (sum, e) => sum + e.amount);
-
-                final lastMonth = now.month == 1 ? 12 : now.month - 1;
-                final lastMonthYear = now.month == 1 ? now.year - 1 : now.year;
-                final lastMonthExpenses = expenses
-                    .where(
-                      (e) =>
-                          !e.isFromSavings &&
-                          !e.isIncome &&
-                          e.date.month == lastMonth &&
-                          e.date.year == lastMonthYear,
-                    )
-                    .fold(0.0, (sum, e) => sum + e.amount);
-
-                double monthlyPercentage = 0.0;
-                if (lastMonthExpenses > 0) {
-                  monthlyPercentage =
-                      ((monthlyExpenses - lastMonthExpenses) /
-                          lastMonthExpenses) *
-                      100;
-                } else if (monthlyExpenses > 0) {
-                  monthlyPercentage = 100.0;
-                }
-
-                // Current Balance calculations
-                final normalExpenses = expenses
-                    .where((e) => !e.isFromSavings && !e.isIncome)
-                    .fold(0.0, (sum, e) => sum + e.amount);
-
-                final totalIncome = expenses
-                    .where((e) => e.isIncome)
-                    .fold(0.0, (sum, e) => sum + e.amount);
-
-                final currentBalance =
-                    savingsState.initialBalance + totalIncome - normalExpenses;
-
-                final savingsExpenses = expenses
-                    .where((e) => e.isFromSavings)
-                    .fold(0.0, (sum, e) => sum + e.amount);
-
-                final Map<String, double> historicalSavingsMap =
-                    Map<String, double>.from(
-                      DatabaseService.savingsBox.get('historicalSavings') ?? {},
+                    final startOfLastWeek = startOfWeek.subtract(
+                      const Duration(days: 7),
                     );
-                final rawTotalSavings = historicalSavingsMap.values.fold(
-                  0.0,
-                  (sum, val) => sum + val,
-                );
-                final totalSavings = rawTotalSavings - savingsExpenses;
-
-                final cycleResetInitialBalance =
-                    DatabaseService.savingsBox.get(
-                          'cycleResetInitialBalance',
-                          defaultValue: 0.0,
+                    final lastWeekExpenses = expenses
+                        .where(
+                          (e) =>
+                              !e.isFromSavings &&
+                              !e.isIncome &&
+                              (e.date.isAfter(startOfLastWeek) ||
+                                  e.date.isAtSameMomentAs(startOfLastWeek)) &&
+                              e.date.isBefore(startOfWeek),
                         )
-                        as double;
-                final cycleResetNormalExpenses =
-                    DatabaseService.savingsBox.get(
-                          'cycleResetNormalExpenses',
-                          defaultValue: 0.0,
+                        .fold(0.0, (sum, e) => sum + e.amount);
+
+                    double weeklyPercentage = 0.0;
+                    if (lastWeekExpenses > 0) {
+                      weeklyPercentage =
+                          ((weeklyExpenses - lastWeekExpenses) /
+                              lastWeekExpenses) *
+                          100;
+                    } else if (weeklyExpenses > 0) {
+                      weeklyPercentage = 100.0;
+                    }
+
+                    final monthlyExpenses = expenses
+                        .where(
+                          (e) =>
+                              !e.isFromSavings &&
+                              !e.isIncome &&
+                              e.date.month == now.month &&
+                              e.date.year == now.year,
                         )
-                        as double;
+                        .fold(0.0, (sum, e) => sum + e.amount);
 
-                final incomeAddedSinceReset =
-                    savingsState.initialBalance - cycleResetInitialBalance;
-                final expensesSinceReset =
-                    normalExpenses - cycleResetNormalExpenses;
+                    final lastMonth = now.month == 1 ? 12 : now.month - 1;
+                    final lastMonthYear = now.month == 1
+                        ? now.year - 1
+                        : now.year;
+                    final lastMonthExpenses = expenses
+                        .where(
+                          (e) =>
+                              !e.isFromSavings &&
+                              !e.isIncome &&
+                              e.date.month == lastMonth &&
+                              e.date.year == lastMonthYear,
+                        )
+                        .fold(0.0, (sum, e) => sum + e.amount);
 
-                double percentageChange = 0.0;
-                if (incomeAddedSinceReset > 0) {
-                  percentageChange =
-                      -(expensesSinceReset / incomeAddedSinceReset) * 100;
-                } else if (expensesSinceReset > 0) {
-                  percentageChange = -100.0;
-                }
+                    double monthlyPercentage = 0.0;
+                    if (lastMonthExpenses > 0) {
+                      monthlyPercentage =
+                          ((monthlyExpenses - lastMonthExpenses) /
+                              lastMonthExpenses) *
+                          100;
+                    } else if (monthlyExpenses > 0) {
+                      monthlyPercentage = 100.0;
+                    }
 
-                final isZeroChange = percentageChange == 0.0;
-                final isPositiveChange = percentageChange > 0;
-                final changeColor = isZeroChange
-                    ? Colors.grey
-                    : isPositiveChange
-                    ? const Color(0xFF00E676)
-                    : Colors.redAccent;
-                final changeSign = isZeroChange
-                    ? ''
-                    : (isPositiveChange ? '+' : '');
+                    final cycleResetNormalExpenses =
+                        DatabaseService.savingsBox.get(
+                              'cycleResetNormalExpenses',
+                              defaultValue: 0.0,
+                            )
+                            as double;
+                    final cycleResetInitialBalance =
+                        DatabaseService.savingsBox.get(
+                              'cycleResetInitialBalance',
+                              defaultValue: 0.0,
+                            )
+                            as double;
+                    final cycleResetIncome =
+                        DatabaseService.savingsBox.get(
+                              'cycleResetIncome',
+                              defaultValue: 0.0,
+                            )
+                            as double;
 
-                // Category mapping for Donut Chart
-                final categoryMap = <String, double>{};
-                for (final e in expenses) {
-                  if (e.isFromSavings || e.isIncome) continue;
+                    // Current Balance calculations
+                    final normalExpenses = expenses
+                        .where((e) => !e.isFromSavings && !e.isIncome)
+                        .fold(0.0, (sum, e) => sum + e.amount);
 
-                  String catId = e.categoryId;
-                  if (!DatabaseService.defaultCategoryIds.contains(catId)) {
-                    catId = 'others';
-                  }
-                  categoryMap[catId] = (categoryMap[catId] ?? 0.0) + e.amount;
-                }
+                    final totalIncome = expenses
+                        .where((e) => e.isIncome)
+                        .fold(0.0, (sum, e) => sum + e.amount);
 
-                return SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Total Balance Section
-                        const SizedBox(height: 10),
-                        GestureDetector(
-                          onTap: () => _showInitialBalanceDialog(
-                            context,
-                            savingsState.initialBalance,
-                            currentBalance,
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
+                    final expensesSinceReset =
+                        normalExpenses - cycleResetNormalExpenses;
+                    final initialBalanceSinceReset =
+                        savingsState.initialBalance - cycleResetInitialBalance;
+                    final incomeSinceReset = totalIncome - cycleResetIncome;
+
+                    final currentBalance =
+                        initialBalanceSinceReset +
+                        incomeSinceReset -
+                        expensesSinceReset;
+
+                    final savingsExpenses = expenses
+                        .where((e) => e.isFromSavings)
+                        .fold(0.0, (sum, e) => sum + e.amount);
+
+                    final Map<String, double> historicalSavingsMap =
+                        Map<String, double>.from(
+                          DatabaseService.savingsBox.get('historicalSavings') ??
+                              {},
+                        );
+                    final rawTotalSavings = historicalSavingsMap.values.fold(
+                      0.0,
+                      (sum, val) => sum + val,
+                    );
+                    final totalSavings = rawTotalSavings - savingsExpenses;
+
+                    final totalStartingFunds =
+                        initialBalanceSinceReset + incomeSinceReset;
+
+                    double percentageChange = 0.0;
+                    if (totalStartingFunds > 0) {
+                      percentageChange =
+                          -(expensesSinceReset / totalStartingFunds) * 100;
+                    }
+
+                    // Create list combining real expenses and virtual archive transactions for the home screen
+                    final List<Expense> homeTransactions = List.from(expenses);
+                    historicalSavingsMap.forEach((monthKey, amount) {
+                      if (amount <= 0) return;
+                      final parts = monthKey.split('-');
+                      final year =
+                          int.tryParse(parts[0]) ?? DateTime.now().year;
+                      final month =
+                          int.tryParse(parts[1]) ?? DateTime.now().month;
+                      // Timestamp set to 5th of that cycle month at midnight
+                      final date = DateTime(
+                        parts.length > 2 ? year : year,
+                        month,
+                        5,
+                        0,
+                        0,
+                        0,
+                      );
+
+                      // The savings are for the month before the cycle month
+                      final displayMonth = month == 1 ? 12 : month - 1;
+                      final displayYear = month == 1 ? year - 1 : year;
+                      final displayDate = DateTime(
+                        displayYear,
+                        displayMonth,
+                        5,
+                      );
+                      final archivedMonthName = DateFormat(
+                        'MMMM',
+                      ).format(displayDate).toUpperCase();
+
+                      homeTransactions.add(
+                        Expense(
+                          id: 'archive_$monthKey',
+                          amount: amount,
+                          date: date,
+                          categoryId: 'savings_archive',
+                          note: 'Savings for $archivedMonthName month',
+                          isIncome: false,
+                        ),
+                      );
+                    });
+
+                    homeTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+                    final isZeroChange = percentageChange == 0.0;
+                    final isPositiveChange = percentageChange > 0;
+                    final changeColor = isZeroChange
+                        ? Colors.grey
+                        : isPositiveChange
+                        ? const Color(0xFF00E676)
+                        : Colors.redAccent;
+                    final changeSign = isZeroChange
+                        ? ''
+                        : (isPositiveChange ? '+' : '');
+
+                    final cycleResetDateStr =
+                        DatabaseService.savingsBox.get(
+                              'cycleResetDate',
+                              defaultValue: '',
+                            )
+                            as String;
+                    final cycleResetDate = cycleResetDateStr.isNotEmpty
+                        ? DateTime.parse(cycleResetDateStr)
+                        : DateTime(1970);
+
+                    // Category mapping for Donut Chart
+                    final categoryMap = <String, double>{};
+                    for (final e in expenses) {
+                      if (e.isFromSavings || e.isIncome) continue;
+                      if (e.date.isBefore(cycleResetDate)) continue;
+
+                      String catId = e.categoryId;
+                      if (!DatabaseService.defaultCategoryIds.contains(catId)) {
+                        catId = 'others';
+                      }
+                      categoryMap[catId] =
+                          (categoryMap[catId] ?? 0.0) + e.amount;
+                    }
+
+                    return SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Total Balance Section
+                            const SizedBox(height: 10),
+                            GestureDetector(
+                              onTap: () => _showInitialBalanceDialog(
+                                context,
+                                savingsState.initialBalance,
+                                currentBalance,
+                              ),
+                              child: Column(
                                 children: [
-                                  const Text(
-                                    'Total Balance',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.edit,
-                                    size: 16,
-                                    color: Colors.grey,
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        'Total Balance',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.edit,
+                                        size: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        GestureDetector(
-                          onTap: () =>
-                              _showTotalBalanceTrendDialog(context, expenses),
-                          child: Row(
-                            children: [
-                              Text(
-                                NumberFormat.currency(
-                                  symbol: '₹',
-                                  decimalDigits: 0,
-                                ).format(currentBalance),
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: changeColor.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '$changeSign${percentageChange.toStringAsFixed(1)}%',
-                                  style: TextStyle(
-                                    color: changeColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.savings_outlined,
-                              size: 16,
-                              color: Color(0xFF00E676),
                             ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Total Savings',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              NumberFormat.currency(
-                                symbol: '₹',
-                                decimalDigits: 0,
-                              ).format(totalSavings),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF00E676),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Section A: Daily, Weekly, Monthly Stats
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                'Today\'s Expense',
-                                todayExpenses,
-                                todayPercentage,
-                                onTap: () =>
-                                    _showExpenseTrendDialog(context, expenses),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildStatCard(
-                                'Weekly Expense',
-                                weeklyExpenses,
-                                weeklyPercentage,
-                                onTap: () =>
-                                    _showWeeklyTrendDialog(context, expenses),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _buildStatCard(
-                          'Monthly Expense',
-                          monthlyExpenses,
-                          monthlyPercentage,
-                          isFullWidth: true,
-                          onTap: () =>
-                              _showMonthlyTrendDialog(context, expenses),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Section B: Quick Glance Custom Donut Chart & Savings side-by-side
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Left side: Pie/Donut Quick Glance Card
-                            Expanded(
-                              flex: 1,
-                              child: DonutChartCard(
-                                categories: categoryMap,
-                                touchedCategoryId: _touchedChartCategoryId,
-                                onCategoryTouched: (categoryId) {
-                                  setState(() {
-                                    _touchedChartCategoryId = categoryId;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-
-                            // Right side: Explicit Savings Section (Mockup Goal widget)
-                            Expanded(
-                              flex: 1,
-                              child: _buildSavingsWidget(
+                            const SizedBox(height: 4),
+                            GestureDetector(
+                              onTap: () => _showTotalBalanceTrendDialog(
                                 context,
-                                savingsState,
                                 expenses,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Section D: Recent Transactions Header
-                        GestureDetector(
-                          onTap: () =>
-                              MainNavigationScreen.navigateToTab(context, 2),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              child: Row(
                                 children: [
-                                  const Text(
-                                    'Recent Transactions',
-                                    style: TextStyle(
-                                      fontSize: 18,
+                                  Text(
+                                    NumberFormat.currency(
+                                      symbol: '₹',
+                                      decimalDigits: 0,
+                                    ).format(currentBalance),
+                                    style: const TextStyle(
+                                      fontSize: 32,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      MainNavigationScreen.navigateToTab(
-                                        context,
-                                        2,
-                                      ); // Go to History tab
-                                    },
-                                    child: const Text(
-                                      'See All',
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: changeColor.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '$changeSign${percentageChange.toStringAsFixed(1)}%',
                                       style: TextStyle(
-                                        color: Color(0xFF00E676),
+                                        color: changeColor,
+                                        fontSize: 11,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              // Recent Transaction Items
-                              if (expenses.isEmpty)
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 24.0),
-                                  child: Center(
-                                    child: Text(
-                                      'No recent transactions.',
-                                      style: TextStyle(color: Colors.grey),
+                            ),
+                            const SizedBox(height: 12),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _showSavingsTrendDialog(
+                                context,
+                                expenses,
+                                savingsState,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.savings_outlined,
+                                    size: 16,
+                                    color: Color(0xFF00E676),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'Total Savings',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
                                     ),
                                   ),
-                                )
-                              else
-                                ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: expenses.length > 3
-                                      ? 3
-                                      : expenses.length,
-                                  itemBuilder: (context, index) {
-                                    final expense = expenses[index];
-                                    final category = DatabaseService.categoryBox
-                                        .get(expense.categoryId);
-                                    return _buildRecentTransactionTile(
-                                      expense,
-                                      category,
-                                    );
-                                  },
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    NumberFormat.currency(
+                                      symbol: '₹',
+                                      decimalDigits: 0,
+                                    ).format(totalSavings),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF00E676),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Section A: Daily, Weekly, Monthly Stats
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStatCard(
+                                    'Today\'s Expense',
+                                    todayExpenses,
+                                    todayPercentage,
+                                    onTap: () => _showExpenseTrendDialog(
+                                      context,
+                                      expenses,
+                                    ),
+                                  ),
                                 ),
-                            ],
-                          ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildStatCard(
+                                    'Weekly Expense',
+                                    weeklyExpenses,
+                                    weeklyPercentage,
+                                    onTap: () => _showWeeklyTrendDialog(
+                                      context,
+                                      expenses,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            _buildStatCard(
+                              'Monthly Expense',
+                              monthlyExpenses,
+                              monthlyPercentage,
+                              isFullWidth: true,
+                              onTap: () =>
+                                  _showMonthlyTrendDialog(context, expenses),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Section B: Quick Glance Custom Donut Chart & Savings side-by-side
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Left side: Pie/Donut Quick Glance Card
+                                Expanded(
+                                  flex: 1,
+                                  child: DonutChartCard(
+                                    categories: categoryMap,
+                                    touchedCategoryId: _touchedChartCategoryId,
+                                    onCategoryTouched: (categoryId) {
+                                      setState(() {
+                                        _touchedChartCategoryId = categoryId;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+
+                                // Right side: Explicit Savings Section (Mockup Goal widget)
+                                Expanded(
+                                  flex: 1,
+                                  child: _buildSavingsWidget(
+                                    context,
+                                    savingsState,
+                                    expenses,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Section D: Recent Transactions Header
+                            GestureDetector(
+                              onTap: () => MainNavigationScreen.navigateToTab(
+                                context,
+                                2,
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Recent Transactions',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          MainNavigationScreen.navigateToTab(
+                                            context,
+                                            2,
+                                          ); // Go to History tab
+                                        },
+                                        child: const Text(
+                                          'See All',
+                                          style: TextStyle(
+                                            color: Color(0xFF00E676),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  // Recent Transaction Items
+                                  if (homeTransactions.isEmpty)
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 24.0,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          'No recent transactions.',
+                                          style: TextStyle(color: Colors.grey),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: homeTransactions.length > 4
+                                          ? 4
+                                          : homeTransactions.length,
+                                      itemBuilder: (context, index) {
+                                        final expense = homeTransactions[index];
+                                        final category = DatabaseService
+                                            .categoryBox
+                                            .get(expense.categoryId);
+                                        return _buildRecentTransactionTile(
+                                          expense,
+                                          category,
+                                        );
+                                      },
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                          ],
                         ),
-                        const SizedBox(height: 40),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 );
               },
-            );
-          },
-        ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: BoilingFAB(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddExpenseScreen()),
+          );
+        },
       ),
     );
   }
@@ -1396,15 +1498,36 @@ class _HomeScreenState extends State<HomeScreen> {
         ? (calculatedSavedAmount / savingsState.targetAmount).clamp(0.0, 1.0)
         : 0.0;
 
+    final Map<String, double> historicalSavingsMap = Map<String, double>.from(
+      DatabaseService.savingsBox.get('historicalSavings') ?? {},
+    );
+
     // Generate trend data for the last 6 months (savings at the 5th of each month)
     final List<double> trendData = [];
     for (int i = 5; i >= 0; i--) {
       // Dart DateTime automatically handles zero/negative months by rolling back the year
       final monthDate = DateTime(now.year, now.month - i, 5);
-      final expensesBeforeMonth = expenses
-          .where((e) => e.date.isBefore(monthDate))
+
+      // Calculate savings for this month:
+      // 1. Sum up all historical savings archived before or during this month.
+      double monthSavings = 0.0;
+      historicalSavingsMap.forEach((monthKey, amount) {
+        final parts = monthKey.split('-');
+        final y = int.tryParse(parts[0]) ?? 0;
+        final m = int.tryParse(parts[1]) ?? 0;
+        final archiveDate = DateTime(y, m, 5);
+        if (archiveDate.isBefore(monthDate) ||
+            archiveDate.isAtSameMomentAs(monthDate)) {
+          monthSavings += amount;
+        }
+      });
+
+      // 2. Subtract all expenses made from savings before this month's 5th.
+      final savingsExpensesBeforeMonth = expenses
+          .where((e) => e.isFromSavings && e.date.isBefore(monthDate))
           .fold(0.0, (sum, e) => sum + e.amount);
-      trendData.add(savingsState.initialBalance - expensesBeforeMonth);
+
+      trendData.add(monthSavings - savingsExpensesBeforeMonth);
     }
 
     return GestureDetector(
@@ -1490,12 +1613,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRecentTransactionTile(Expense expense, Category? category) {
-    final iconData = category != null
-        ? IconData(
-            int.parse(category.iconCodePoint),
-            fontFamily: 'MaterialIcons',
-          )
-        : Icons.receipt;
+    final iconData = expense.categoryId == 'savings_archive'
+        ? Icons.attach_money
+        : (category != null
+              ? IconData(
+                  int.parse(category.iconCodePoint),
+                  fontFamily: 'MaterialIcons',
+                )
+              : Icons.receipt);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1508,23 +1633,29 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: const Color(0xFF09090B),
           child: Icon(
             iconData,
-            color:
-                DatabaseService.categoryColors[expense.categoryId] ??
-                Colors.white,
+            color: (expense.isIncome || expense.categoryId == 'savings_archive')
+                ? const Color(0xFF00E676)
+                : (DatabaseService.categoryColors[expense.categoryId] ??
+                      Colors.white),
           ),
         ),
         title: Text(
-          category?.name ?? 'Unknown',
+          expense.categoryId == 'savings_archive'
+              ? 'Saved'
+              : (category?.name ?? 'Unknown'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          DateFormat.yMMMd().format(expense.date),
+          expense.categoryId == 'savings_archive' && expense.note != null
+              ? expense.note!
+              : DateFormat.yMMMd().format(expense.date),
           style: const TextStyle(color: Colors.grey, fontSize: 12),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (expense.isFromSavings) ...[
+            if (expense.isFromSavings ||
+                expense.categoryId == 'savings_archive') ...[
               const Icon(
                 Icons.savings_outlined,
                 color: Color(0xFF00E676),
@@ -1533,10 +1664,16 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 6),
             ],
             Text(
-              '-${NumberFormat.currency(symbol: '₹').format(expense.amount)}',
-              style: const TextStyle(
+              (expense.isIncome || expense.categoryId == 'savings_archive')
+                  ? '+${NumberFormat.currency(symbol: '₹').format(expense.amount)}'
+                  : '-${NumberFormat.currency(symbol: '₹').format(expense.amount)}',
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color:
+                    (expense.isIncome ||
+                        expense.categoryId == 'savings_archive')
+                    ? const Color(0xFF00E676)
+                    : Colors.white,
               ),
             ),
           ],
@@ -1628,6 +1765,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: StatefulBuilder(
             builder: (context, dialogSetState) {
+              Color activeColor = const Color(0xFF00E676);
+              if (dailyBalances.isNotEmpty) {
+                final double sum = dailyBalances.reduce((a, b) => a + b);
+                final double average = sum / dailyBalances.length;
+                final double currentVal = activeIndex != null
+                    ? dailyBalances[activeIndex!]
+                    : dailyBalances.last;
+
+                if (currentVal < average * 0.5) {
+                  activeColor = const Color(0xFFB71C1C); // Dark Red
+                } else if (currentVal > average * 1.5) {
+                  activeColor = const Color(0xFFFF8A80); // Light Red
+                } else {
+                  activeColor = const Color(0xFFE53935); // Normal Red
+                }
+              }
+
               return ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: Column(
@@ -1642,17 +1796,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF00E676).withValues(alpha: 0.15),
-                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                            activeColor.withValues(alpha: 0.15),
+                            activeColor.withValues(alpha: 0.02),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         border: Border(
                           bottom: BorderSide(
-                            color: const Color(
-                              0xFF00E676,
-                            ).withValues(alpha: 0.1),
+                            color: activeColor.withValues(alpha: 0.1),
                             width: 1,
                           ),
                         ),
@@ -1673,8 +1825,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             activeIndex != null
                                 ? '₹${dailyBalances[activeIndex!].toStringAsFixed(0)}'
                                 : '₹${dailyBalances.last.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              color: Color(0xFF00E676),
+                            style: TextStyle(
+                              color: activeColor,
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1757,6 +1909,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       dailyLabels,
                                       activeIndex,
                                       showLabels: false,
+                                      isBurnDown: true,
                                     ),
                                   ),
                                 );
@@ -1769,8 +1922,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: ElevatedButton(
                               onPressed: () => Navigator.pop(context),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00E676),
-                                foregroundColor: Colors.black,
+                                backgroundColor: activeColor,
+                                foregroundColor:
+                                    activeColor.computeLuminance() > 0.5
+                                    ? Colors.black
+                                    : Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
@@ -1816,6 +1972,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final daySum = expenses
           .where(
             (e) =>
+                !e.isFromSavings &&
+                !e.isIncome &&
                 e.date.isAfter(
                   startOfDay.subtract(const Duration(milliseconds: 1)),
                 ) &&
@@ -1853,6 +2011,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: StatefulBuilder(
             builder: (context, dialogSetState) {
+              Color activeColor = const Color(0xFF00E676);
+              if (weeklyAmounts.isNotEmpty) {
+                final double sum = weeklyAmounts.reduce((a, b) => a + b);
+                final double average = sum / weeklyAmounts.length;
+                final double currentVal = activeIndex != null
+                    ? weeklyAmounts[activeIndex!]
+                    : weeklyAmounts.last;
+
+                if (currentVal < average * 0.5) {
+                  activeColor = const Color(0xFFFF8A80); // Light Red
+                } else if (currentVal > average * 1.5) {
+                  activeColor = const Color(0xFFB71C1C); // Dark Red
+                } else {
+                  activeColor = const Color(0xFFE53935); // Normal Red
+                }
+              }
+
               return ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: Column(
@@ -1867,17 +2042,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF00E676).withValues(alpha: 0.15),
-                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                            activeColor.withValues(alpha: 0.15),
+                            activeColor.withValues(alpha: 0.02),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         border: Border(
                           bottom: BorderSide(
-                            color: const Color(
-                              0xFF00E676,
-                            ).withValues(alpha: 0.1),
+                            color: activeColor.withValues(alpha: 0.1),
                             width: 1,
                           ),
                         ),
@@ -1920,8 +2093,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           symbol: '₹',
                                           decimalDigits: 0,
                                         ).format(weeklyAmounts[activeIndex!]),
-                                        style: const TextStyle(
-                                          color: Color(0xFF00E676),
+                                        style: TextStyle(
+                                          color: activeColor,
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -2026,6 +2199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       weeklyAmounts,
                                       weeklyLabels,
                                       activeIndex,
+                                      isExpenseTrend: true,
                                     ),
                                   ),
                                 );
@@ -2038,8 +2212,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: ElevatedButton(
                               onPressed: () => Navigator.pop(context),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00E676),
-                                foregroundColor: Colors.black,
+                                backgroundColor: activeColor,
+                                foregroundColor:
+                                    activeColor.computeLuminance() > 0.5
+                                    ? Colors.black
+                                    : Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
@@ -2100,6 +2277,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final weekSum = expenses
           .where(
             (e) =>
+                !e.isFromSavings &&
+                !e.isIncome &&
                 e.date.isAfter(
                   startOfDay.subtract(const Duration(milliseconds: 1)),
                 ) &&
@@ -2137,6 +2316,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: StatefulBuilder(
             builder: (context, dialogSetState) {
+              Color activeColor = const Color(0xFF00E676);
+              if (weeklyAmounts.isNotEmpty) {
+                final double sum = weeklyAmounts.reduce((a, b) => a + b);
+                final double average = sum / weeklyAmounts.length;
+                final double currentVal = activeIndex != null
+                    ? weeklyAmounts[activeIndex!]
+                    : weeklyAmounts.last;
+
+                if (currentVal < average * 0.5) {
+                  activeColor = const Color(0xFFFF8A80); // Light Red
+                } else if (currentVal > average * 1.5) {
+                  activeColor = const Color(0xFFB71C1C); // Dark Red
+                } else {
+                  activeColor = const Color(0xFFE53935); // Normal Red
+                }
+              }
+
               return ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: Column(
@@ -2151,17 +2347,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF00E676).withValues(alpha: 0.15),
-                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                            activeColor.withValues(alpha: 0.15),
+                            activeColor.withValues(alpha: 0.02),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         border: Border(
                           bottom: BorderSide(
-                            color: const Color(
-                              0xFF00E676,
-                            ).withValues(alpha: 0.1),
+                            color: activeColor.withValues(alpha: 0.1),
                             width: 1,
                           ),
                         ),
@@ -2204,8 +2398,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           symbol: '₹',
                                           decimalDigits: 0,
                                         ).format(weeklyAmounts[activeIndex!]),
-                                        style: const TextStyle(
-                                          color: Color(0xFF00E676),
+                                        style: TextStyle(
+                                          color: activeColor,
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -2310,6 +2504,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       weeklyAmounts,
                                       weeklyLabels,
                                       activeIndex,
+                                      isExpenseTrend: true,
                                     ),
                                   ),
                                 );
@@ -2322,8 +2517,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: ElevatedButton(
                               onPressed: () => Navigator.pop(context),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00E676),
-                                foregroundColor: Colors.black,
+                                backgroundColor: activeColor,
+                                foregroundColor:
+                                    activeColor.computeLuminance() > 0.5
+                                    ? Colors.black
+                                    : Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
@@ -2385,6 +2583,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final monthSum = expenses
           .where(
             (e) =>
+                !e.isFromSavings &&
+                !e.isIncome &&
                 e.date.isAfter(
                   startOfMonth.subtract(const Duration(milliseconds: 1)),
                 ) &&
@@ -2424,6 +2624,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: StatefulBuilder(
             builder: (context, dialogSetState) {
+              Color activeColor = const Color(0xFF00E676);
+              if (monthlyAmounts.isNotEmpty) {
+                final double sum = monthlyAmounts.reduce((a, b) => a + b);
+                final double average = sum / monthlyAmounts.length;
+                final double currentVal = activeIndex != null
+                    ? monthlyAmounts[activeIndex!]
+                    : monthlyAmounts.last;
+
+                if (currentVal < average * 0.5) {
+                  activeColor = const Color(0xFFFF8A80); // Light Red
+                } else if (currentVal > average * 1.5) {
+                  activeColor = const Color(0xFFB71C1C); // Dark Red
+                } else {
+                  activeColor = const Color(0xFFE53935); // Normal Red
+                }
+              }
+
               return ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: Column(
@@ -2438,17 +2655,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF00E676).withValues(alpha: 0.15),
-                            const Color(0xFF00B0FF).withValues(alpha: 0.02),
+                            activeColor.withValues(alpha: 0.15),
+                            activeColor.withValues(alpha: 0.02),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         border: Border(
                           bottom: BorderSide(
-                            color: const Color(
-                              0xFF00E676,
-                            ).withValues(alpha: 0.1),
+                            color: activeColor.withValues(alpha: 0.1),
                             width: 1,
                           ),
                         ),
@@ -2491,8 +2706,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           symbol: '₹',
                                           decimalDigits: 0,
                                         ).format(monthlyAmounts[activeIndex!]),
-                                        style: const TextStyle(
-                                          color: Color(0xFF00E676),
+                                        style: TextStyle(
+                                          color: activeColor,
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -2597,6 +2812,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       monthlyAmounts,
                                       monthlyLabels,
                                       activeIndex,
+                                      isExpenseTrend: true,
                                     ),
                                   ),
                                 );
@@ -2609,7 +2825,301 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: ElevatedButton(
                               onPressed: () => Navigator.pop(context),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00E676),
+                                backgroundColor: activeColor,
+                                foregroundColor:
+                                    activeColor.computeLuminance() > 0.5
+                                    ? Colors.black
+                                    : Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Close',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSavingsTrendDialog(
+    BuildContext context,
+    List<Expense> expenses,
+    SavingsState savingsState,
+  ) {
+    final now = DateTime.now();
+    final List<double> monthlyAmounts = [];
+    final List<String> monthlyLabels = [];
+    final List<DateTime> dates = [];
+
+    final Map<String, double> historicalSavingsMap = Map<String, double>.from(
+      DatabaseService.savingsBox.get('historicalSavings') ?? {},
+    );
+
+    // Calculate historical savings for each of the last 12 months (up to the 5th of each month)
+    for (int i = 11; i >= 0; i--) {
+      // Dart DateTime automatically handles zero/negative months by rolling back the year
+      final monthDate = DateTime(now.year, now.month - i, 5);
+
+      final prevMonth = monthDate.month == 1 ? 12 : monthDate.month - 1;
+      final prevYear = monthDate.month == 1
+          ? monthDate.year - 1
+          : monthDate.year;
+      final displayDate = DateTime(prevYear, prevMonth, 5);
+      dates.add(displayDate);
+
+      // Sum up all historical savings archived before or during this month.
+      double monthSavings = 0.0;
+      historicalSavingsMap.forEach((monthKey, amount) {
+        final parts = monthKey.split('-');
+        final y = int.tryParse(parts[0]) ?? 0;
+        final m = int.tryParse(parts[1]) ?? 0;
+        final archiveDate = DateTime(y, m, 5);
+        if (archiveDate.isBefore(monthDate) ||
+            archiveDate.isAtSameMomentAs(monthDate)) {
+          monthSavings += amount;
+        }
+      });
+
+      // Subtract all expenses made from savings before this month's 5th.
+      final savingsExpensesBeforeMonth = expenses
+          .where((e) => e.isFromSavings && e.date.isBefore(monthDate))
+          .fold(0.0, (sum, e) => sum + e.amount);
+
+      monthlyAmounts.add(monthSavings - savingsExpensesBeforeMonth);
+      monthlyLabels.add(DateFormat('MMM').format(displayDate));
+    }
+
+    final double totalCurrentSavings = monthlyAmounts.isNotEmpty
+        ? monthlyAmounts.last
+        : 0.0;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        int? activeIndex;
+
+        return Dialog(
+          backgroundColor: const Color(0xFF141416),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, dialogSetState) {
+              const Color activeColor = Color(0xFF00E676); // ALWAYS green
+
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            activeColor.withValues(alpha: 0.15),
+                            activeColor.withValues(alpha: 0.02),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: activeColor.withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E22),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
+                            ),
+                            child: activeIndex != null
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Savings in ${DateFormat('MMMM yyyy').format(dates[activeIndex!])}:',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        NumberFormat.currency(
+                                          symbol: '₹',
+                                          decimalDigits: 0,
+                                        ).format(monthlyAmounts[activeIndex!]),
+                                        style: const TextStyle(
+                                          color: activeColor,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Total Savings Balance:',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        NumberFormat.currency(
+                                          symbol: '₹',
+                                          decimalDigits: 0,
+                                        ).format(totalCurrentSavings),
+                                        style: const TextStyle(
+                                          color: activeColor,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 180,
+                            width: double.infinity,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onLongPressStart: (details) {
+                                    final maxIndex = monthlyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onLongPressMoveUpdate: (details) {
+                                    final maxIndex = monthlyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onLongPressEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  onHorizontalDragStart: (details) {
+                                    final maxIndex = monthlyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragUpdate: (details) {
+                                    final maxIndex = monthlyAmounts.length - 1;
+                                    final spacing =
+                                        constraints.maxWidth / maxIndex;
+                                    final index =
+                                        (details.localPosition.dx / spacing)
+                                            .round()
+                                            .clamp(0, maxIndex);
+                                    dialogSetState(() {
+                                      activeIndex = index;
+                                    });
+                                  },
+                                  onHorizontalDragEnd: (details) {
+                                    dialogSetState(() {
+                                      activeIndex = null;
+                                    });
+                                  },
+                                  child: CustomPaint(
+                                    painter: ExpenseChartPainter(
+                                      monthlyAmounts,
+                                      monthlyLabels,
+                                      activeIndex,
+                                      chartColor: activeColor,
+                                      isExpenseTrend: false,
+                                      isBurnDown: false,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: activeColor,
                                 foregroundColor: Colors.black,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
@@ -2814,6 +3324,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 DatabaseService.savingsBox.put(
                                   'cycleResetInitialBalance',
                                   normalExpenses,
+                                );
+                                DatabaseService.savingsBox.put(
+                                  'cycleResetIncome',
+                                  totalIncome,
+                                );
+                                DatabaseService.savingsBox.put(
+                                  'cycleResetDate',
+                                  DateTime.now().toIso8601String(),
                                 );
 
                                 Navigator.pop(context);
@@ -3075,12 +3593,7 @@ class DonutChartCard extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: total == 0
-                ? const Center(
-                    child: Text(
-                      'No Data',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  )
+                ? const NoDataAnimation()
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       final size = Size(
@@ -3155,18 +3668,72 @@ class ExpenseChartPainter extends CustomPainter {
   final List<String> labels;
   final int? activeIndex;
   final bool showLabels;
+  final Color chartColor; // Custom color parameter
+  final bool isBurnDown; // Flag for dynamic burn down color shifts
+  final bool isExpenseTrend; // Flag for standard expense outflow trend shifts
 
   ExpenseChartPainter(
     this.values,
     this.labels,
     this.activeIndex, {
     this.showLabels = true,
+    this.chartColor = const Color(0xFF00E676), // Defaults to green
+    this.isBurnDown = false,
+    this.isExpenseTrend = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double maxVal = values.fold(0.0, (max, val) => val > max ? val : max);
-    final double maxValue = maxVal > 0 ? maxVal : 100.0;
+    Color activeChartColor = chartColor;
+    if (values.isNotEmpty) {
+      if (isBurnDown) {
+        // Burn down remaining balance: low balance is alarming (dark red)
+        final double sum = values.reduce((a, b) => a + b);
+        final double average = sum / values.length;
+        final double currentVal = activeIndex != null
+            ? values[activeIndex!]
+            : values.last;
+
+        if (currentVal < average * 0.5) {
+          // Low remaining balance -> Dark Red
+          activeChartColor = const Color(0xFFB71C1C);
+        } else if (currentVal > average * 1.5) {
+          // High remaining balance -> Light Red
+          activeChartColor = const Color(0xFFFF8A80);
+        } else {
+          // Average remaining balance -> Normal Red
+          activeChartColor = const Color(0xFFE53935);
+        }
+      } else if (isExpenseTrend) {
+        // Standard expense spending: low spending is good (light red), high spending is bad (dark red)
+        final double sum = values.reduce((a, b) => a + b);
+        final double average = sum / values.length;
+        final double currentVal = activeIndex != null
+            ? values[activeIndex!]
+            : values.last;
+
+        if (currentVal < average * 0.5) {
+          // Low spending -> Light Red
+          activeChartColor = const Color(0xFFFF8A80);
+        } else if (currentVal > average * 1.5) {
+          // More than average spending -> Dark Red
+          activeChartColor = const Color(0xFFB71C1C);
+        } else {
+          // Average spending -> Normal Red
+          activeChartColor = const Color(0xFFE53935);
+        }
+      }
+    }
+
+    final double minVal = values.fold(
+      values.isNotEmpty ? values.first : 0.0,
+      (min, val) => val < min ? val : min,
+    );
+    final double maxVal = values.fold(
+      values.isNotEmpty ? values.first : 100.0,
+      (max, val) => val > max ? val : max,
+    );
+    final double range = (maxVal - minVal) > 0 ? (maxVal - minVal) : 100.0;
 
     final double width = size.width;
     final double height = size.height;
@@ -3190,8 +3757,9 @@ class ExpenseChartPainter extends CustomPainter {
     final List<Offset> points = [];
     for (int i = 0; i < pointCount; i++) {
       final double x = i * spacing;
-      final double y =
-          topPadding + graphHeight - (values[i] / maxValue) * graphHeight;
+      final double fraction = (values[i] - minVal) / range;
+      final double y = (topPadding + graphHeight - (fraction * graphHeight))
+          .clamp(topPadding, topPadding + graphHeight);
       points.add(Offset(x, y));
     }
 
@@ -3206,8 +3774,8 @@ class ExpenseChartPainter extends CustomPainter {
 
       final fillGradient = LinearGradient(
         colors: [
-          const Color(0xFF00E676).withValues(alpha: 0.12),
-          const Color(0xFF00E676).withValues(alpha: 0.0),
+          activeChartColor.withValues(alpha: 0.12),
+          activeChartColor.withValues(alpha: 0.0),
         ],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
@@ -3223,7 +3791,7 @@ class ExpenseChartPainter extends CustomPainter {
     }
 
     final linePaint = Paint()
-      ..color = const Color(0xFF00E676)
+      ..color = activeChartColor
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -3254,7 +3822,7 @@ class ExpenseChartPainter extends CustomPainter {
           text: labels[i],
           style: activeIndex == i
               ? textStyle.copyWith(
-                  color: const Color(0xFF00E676),
+                  color: activeChartColor,
                   fontWeight: FontWeight.bold,
                 )
               : textStyle,
@@ -3292,12 +3860,12 @@ class ExpenseChartPainter extends CustomPainter {
       }
 
       final glowPaint = Paint()
-        ..color = const Color(0xFF00E676).withValues(alpha: 0.25)
+        ..color = activeChartColor.withValues(alpha: 0.25)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(activePoint, 12.0, glowPaint);
 
       final midGlowPaint = Paint()
-        ..color = const Color(0xFF00E676).withValues(alpha: 0.5)
+        ..color = activeChartColor.withValues(alpha: 0.5)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(activePoint, 7.0, midGlowPaint);
 

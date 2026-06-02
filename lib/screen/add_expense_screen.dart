@@ -56,7 +56,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     super.dispose();
   }
 
-  void _saveExpense() {
+  void _saveExpense(SavingsState savingsState) {
     if (_amountController.text.isEmpty || _selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -74,6 +74,72 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           content: Text(
             'Please enter a valid amount.',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    final cycleResetNormalExpenses =
+        DatabaseService.savingsBox.get(
+              'cycleResetNormalExpenses',
+              defaultValue: 0.0,
+            )
+            as double;
+    final cycleResetInitialBalance =
+        DatabaseService.savingsBox.get(
+              'cycleResetInitialBalance',
+              defaultValue: 0.0,
+            )
+            as double;
+    final cycleResetIncome =
+        DatabaseService.savingsBox.get('cycleResetIncome', defaultValue: 0.0)
+            as double;
+
+    // Calculate total expenses so far (only normal non-income expenses)
+    final totalExpenses = DatabaseService.expenseBox.values
+        .where((e) => !e.isFromSavings && !e.isIncome)
+        .fold(0.0, (sum, e) => sum + e.amount);
+    final totalIncome = DatabaseService.expenseBox.values
+        .where((e) => e.isIncome)
+        .fold(0.0, (sum, e) => sum + e.amount);
+
+    final expensesSinceReset = totalExpenses - cycleResetNormalExpenses;
+    final initialBalanceSinceReset =
+        savingsState.initialBalance - cycleResetInitialBalance;
+    final incomeSinceReset = totalIncome - cycleResetIncome;
+
+    final normalAvailable =
+        initialBalanceSinceReset + incomeSinceReset - expensesSinceReset;
+
+    // Calculate total savings so far
+    final savingsExpenses = DatabaseService.expenseBox.values
+        .where((e) => e.isFromSavings)
+        .fold(0.0, (sum, e) => sum + e.amount);
+    final historicalSavingsMap = Map<String, double>.from(
+      DatabaseService.savingsBox.get('historicalSavings') ?? {},
+    );
+    final rawTotalSavings = historicalSavingsMap.values.fold(
+      0.0,
+      (sum, val) => sum + val,
+    );
+    final savingsAvailable = rawTotalSavings - savingsExpenses;
+
+    final availableBalance = _isFromSavings
+        ? savingsAvailable
+        : normalAvailable;
+
+    if (amount > availableBalance) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cannot add expense greater than your balance.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           backgroundColor: Colors.redAccent,
         ),
@@ -357,11 +423,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Widget _buildAmountSection(SavingsState savingsState) {
     final typedAmount = double.tryParse(_amountController.text) ?? 0.0;
 
-    // Calculate total expenses so far (only normal expenses)
+    final cycleResetNormalExpenses =
+        DatabaseService.savingsBox.get(
+              'cycleResetNormalExpenses',
+              defaultValue: 0.0,
+            )
+            as double;
+    final cycleResetInitialBalance =
+        DatabaseService.savingsBox.get(
+              'cycleResetInitialBalance',
+              defaultValue: 0.0,
+            )
+            as double;
+    final cycleResetIncome =
+        DatabaseService.savingsBox.get('cycleResetIncome', defaultValue: 0.0)
+            as double;
+
+    // Calculate total expenses so far (only normal non-income expenses)
     final totalExpenses = DatabaseService.expenseBox.values
-        .where((e) => !e.isFromSavings)
+        .where((e) => !e.isFromSavings && !e.isIncome)
         .fold(0.0, (sum, e) => sum + e.amount);
-    final normalAvailable = savingsState.initialBalance - totalExpenses;
+    final totalIncome = DatabaseService.expenseBox.values
+        .where((e) => e.isIncome)
+        .fold(0.0, (sum, e) => sum + e.amount);
+
+    final expensesSinceReset = totalExpenses - cycleResetNormalExpenses;
+    final initialBalanceSinceReset =
+        savingsState.initialBalance - cycleResetInitialBalance;
+    final incomeSinceReset = totalIncome - cycleResetIncome;
+
+    final normalAvailable =
+        initialBalanceSinceReset + incomeSinceReset - expensesSinceReset;
 
     // Calculate total savings so far
     final savingsExpenses = DatabaseService.expenseBox.values
@@ -637,7 +729,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: ElevatedButton(
-                      onPressed: _saveExpense,
+                      onPressed: () => _saveExpense(savingsState),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         backgroundColor: const Color(0xFF00E676),

@@ -1,4 +1,5 @@
 import 'package:expensio/models/category_model.dart';
+import 'package:expensio/widgets/no_data_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -26,7 +27,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final categories = DatabaseService.categoryBox.values.toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('History'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
@@ -138,19 +144,92 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         }
                       }
 
+                      // Ensure savings_archive category is registered in box
+                      if (!DatabaseService.categoryBox.containsKey(
+                        'savings_archive',
+                      )) {
+                        DatabaseService.categoryBox.put(
+                          'savings_archive',
+                          Category(
+                            id: 'savings_archive',
+                            name: 'Saved',
+                            iconCodePoint: Icons.attach_money.codePoint
+                                .toString(),
+                          ),
+                        );
+                      }
+
+                      // Create list combining real expenses and virtual archive transactions
+                      final List<Expense> allTransactions = List.from(
+                        state.expenses,
+                      );
+                      historicalSavingsMap.forEach((monthKey, amount) {
+                        if (amount <= 0) return;
+                        final parts = monthKey.split('-');
+                        final year =
+                            int.tryParse(parts[0]) ?? DateTime.now().year;
+                        final month =
+                            int.tryParse(parts[1]) ?? DateTime.now().month;
+                        // Timestamp set to 5th of that cycle month at midnight
+                        final date = DateTime(
+                          parts.length > 2 ? year : year,
+                          month,
+                          5,
+                          0,
+                          0,
+                          0,
+                        );
+
+                        // The savings are for the month before the cycle month
+                        final displayMonth = month == 1 ? 12 : month - 1;
+                        final displayYear = month == 1 ? year - 1 : year;
+                        final displayDate = DateTime(
+                          displayYear,
+                          displayMonth,
+                          5,
+                        );
+                        final archivedMonthName = DateFormat(
+                          'MMMM',
+                        ).format(displayDate).toUpperCase();
+
+                        allTransactions.add(
+                          Expense(
+                            id: 'archive_$monthKey',
+                            amount: amount,
+                            date: date,
+                            categoryId: 'savings_archive',
+                            note: 'Savings for $archivedMonthName month',
+                            isIncome: false,
+                          ),
+                        );
+                      });
+
+                      // Sort all transactions newest to oldest
+                      allTransactions.sort((a, b) => b.date.compareTo(a.date));
+
                       // Apply search and category filters
-                      var filtered = state.expenses;
+                      var filtered = allTransactions;
 
                       switch (_currentFilter) {
                         case TransactionFilter.all:
                           break;
                         case TransactionFilter.sent:
                           filtered = filtered
-                              .where((e) => !e.isIncome)
+                              .where(
+                                (e) =>
+                                    !e.isIncome &&
+                                    e.categoryId != 'savings_archive',
+                              )
                               .toList();
                           break;
                         case TransactionFilter.received:
-                          filtered = filtered.where((e) => e.isIncome).toList();
+                          filtered = filtered
+                              .where(
+                                (e) =>
+                                    e.isIncome ||
+                                    e.categoryId == 'savings_archive',
+                              )
+                              .toList();
                           break;
                         case TransactionFilter.category:
                           if (_selectedCategoryId != null) {
@@ -178,10 +257,47 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       }
 
                       if (filtered.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No matching transactions.',
-                            style: TextStyle(color: Colors.grey),
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20.0,
+                            vertical: 40.0,
+                          ),
+                          child: Container(
+                            height: MediaQuery.of(context).size.height * 0.5,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF141416),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(height: 180, child: NoDataAnimation()),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'No transactions found.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Try adjusting your search queries or filters.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       }
@@ -229,12 +345,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ...dayExpenses.map((expense) {
                                 final category = DatabaseService.categoryBox
                                     .get(expense.categoryId);
-                                final iconData = category != null
-                                    ? IconData(
-                                        int.parse(category.iconCodePoint),
-                                        fontFamily: 'MaterialIcons',
-                                      )
-                                    : Icons.receipt;
+                                final iconData =
+                                    expense.categoryId == 'savings_archive'
+                                    ? Icons.attach_money
+                                    : (category != null
+                                          ? IconData(
+                                              int.parse(category.iconCodePoint),
+                                              fontFamily: 'MaterialIcons',
+                                            )
+                                          : Icons.receipt);
 
                                 return _SlidableTransactionTile(
                                   key: Key(expense.id),
@@ -532,27 +651,32 @@ class _SlidableTransactionTileState extends State<_SlidableTransactionTile>
 
           // Main ListTile (slides on top)
           GestureDetector(
-            onHorizontalDragUpdate: (details) {
-              setState(() {
-                _dragExtent += details.primaryDelta!;
-                if (_dragExtent > 0) {
-                  _dragExtent = 0; // Don't allow sliding right
-                }
-                if (_dragExtent < -_menuWidth) {
-                  _dragExtent = -_menuWidth; // Limit slide left
-                }
-              });
-            },
-            onHorizontalDragEnd: (details) {
-              _controller.value = _dragExtent / -_menuWidth;
-              if (_dragExtent < -_menuWidth / 2) {
-                // Open menu
-                _controller.animateTo(1.0, curve: Curves.easeOut);
-              } else {
-                // Close menu
-                _controller.animateTo(0.0, curve: Curves.easeOut);
-              }
-            },
+            onHorizontalDragUpdate:
+                widget.expense.categoryId == 'savings_archive'
+                ? null
+                : (details) {
+                    setState(() {
+                      _dragExtent += details.primaryDelta!;
+                      if (_dragExtent > 0) {
+                        _dragExtent = 0; // Don't allow sliding right
+                      }
+                      if (_dragExtent < -_menuWidth) {
+                        _dragExtent = -_menuWidth; // Limit slide left
+                      }
+                    });
+                  },
+            onHorizontalDragEnd: widget.expense.categoryId == 'savings_archive'
+                ? null
+                : (details) {
+                    _controller.value = _dragExtent / -_menuWidth;
+                    if (_dragExtent < -_menuWidth / 2) {
+                      // Open menu
+                      _controller.animateTo(1.0, curve: Curves.easeOut);
+                    } else {
+                      // Close menu
+                      _controller.animateTo(0.0, curve: Curves.easeOut);
+                    }
+                  },
             child: Transform.translate(
               offset: Offset(_dragExtent, 0),
               child: Container(
@@ -568,7 +692,9 @@ class _SlidableTransactionTileState extends State<_SlidableTransactionTile>
                     backgroundColor: const Color(0xFF09090B),
                     child: Icon(
                       widget.iconData,
-                      color: widget.expense.isIncome
+                      color:
+                          (widget.expense.isIncome ||
+                              widget.expense.categoryId == 'savings_archive')
                           ? const Color(0xFF00E676)
                           : (DatabaseService.categoryColors[widget
                                     .expense
@@ -597,7 +723,9 @@ class _SlidableTransactionTileState extends State<_SlidableTransactionTile>
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (widget.expense.isFromSavings) ...[
+                          if (widget.expense.isFromSavings ||
+                              widget.expense.categoryId ==
+                                  'savings_archive') ...[
                             const Icon(
                               Icons.savings_outlined,
                               color: Color(0xFF00E676),
@@ -606,12 +734,17 @@ class _SlidableTransactionTileState extends State<_SlidableTransactionTile>
                             const SizedBox(width: 6),
                           ],
                           Text(
-                            widget.expense.isIncome
+                            (widget.expense.isIncome ||
+                                    widget.expense.categoryId ==
+                                        'savings_archive')
                                 ? '+${NumberFormat.currency(symbol: '₹').format(widget.expense.amount)}'
                                 : '-${NumberFormat.currency(symbol: '₹').format(widget.expense.amount)}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: widget.expense.isIncome
+                              color:
+                                  (widget.expense.isIncome ||
+                                      widget.expense.categoryId ==
+                                          'savings_archive')
                                   ? const Color(0xFF00E676)
                                   : Colors.white,
                             ),

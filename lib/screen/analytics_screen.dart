@@ -7,6 +7,7 @@ import '../models/expense_model.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
 import 'home_screen.dart'; // To reuse ExpenseChartPainter
+import '../widgets/no_data_animation.dart';
 
 enum AnalyticsFilter { oneDay, sevenDays, oneMonth, custom }
 
@@ -331,6 +332,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     if (values.isEmpty) return const SizedBox();
     final double totalExpenses = values.fold(0.0, (sum, v) => sum + v);
 
+    Color activeColor = const Color(0xFF00E676);
+    if (values.isNotEmpty) {
+      final double sum = values.reduce((a, b) => a + b);
+      final double average = sum / values.length;
+      final double currentVal = _activeIndex != null
+          ? values[_activeIndex!]
+          : values.last;
+
+      if (currentVal < average * 0.5) {
+        activeColor = const Color(0xFFFF8A80); // Light Red
+      } else if (currentVal > average * 1.5) {
+        activeColor = const Color(0xFFB71C1C); // Dark Red
+      } else {
+        activeColor = const Color(0xFFE53935); // Normal Red
+      }
+    }
+
     String displayAmount = '';
     String displayLabel = '';
     if (_activeIndex != null &&
@@ -347,8 +365,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Text(
           displayAmount,
-          style: const TextStyle(
-            color: Color(0xFF00E676),
+          style: TextStyle(
+            color: activeColor,
             fontSize: 32,
             fontWeight: FontWeight.bold,
           ),
@@ -403,6 +421,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     axisLabels,
                     _activeIndex,
                     showLabels: true,
+                    isExpenseTrend: true,
                   ),
                 ),
               );
@@ -501,6 +520,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text(
           'Analytics',
@@ -518,10 +538,47 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
             final allExpenses = state.expenses;
             if (allExpenses.isEmpty) {
-              return const Center(
-                child: Text(
-                  'No transactions to analyze.',
-                  style: TextStyle(color: Colors.grey),
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 40.0,
+                ),
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141416),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(height: 180, child: NoDataAnimation()),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'No transactions to analyze.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add a transaction to kickstart your analytics.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
@@ -578,14 +635,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                   const SizedBox(height: 20),
                   if (filteredExpenses.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40.0),
-                      child: Center(
-                        child: Text(
-                          'No expenses in this period.',
-                          style: TextStyle(color: Colors.grey),
+                    Container(
+                      height: 180,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141416),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
                         ),
                       ),
+                      child: NoDataAnimation(),
                     )
                   else
                     ..._buildCategoryList(filteredExpenses),

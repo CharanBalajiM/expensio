@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/expense/expense_bloc.dart';
 import '../blocs/savings/savings_bloc.dart';
+import '../widgets/floating_dust_background.dart';
 import 'home_screen.dart';
 import 'analytics_screen.dart';
 import 'history_screen.dart';
@@ -43,7 +44,27 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (event) {
+          FloatingDustBackground.touchPosition.value = event.position;
+        },
+        onPointerMove: (event) {
+          FloatingDustBackground.touchPosition.value = event.position;
+        },
+        onPointerUp: (event) {
+          FloatingDustBackground.touchPosition.value = null;
+        },
+        onPointerCancel: (event) {
+          FloatingDustBackground.touchPosition.value = null;
+        },
+        child: Stack(
+          children: [
+            const FloatingDustBackground(),
+            IndexedStack(index: _selectedIndex, children: _screens),
+          ],
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF141416),
